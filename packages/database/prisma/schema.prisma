@@ -1,0 +1,648 @@
+// Mile Buy Club - Database Schema (CONTINUED)
+// Prisma schema for trip planning and award flight tracking platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  authProvider String    @map("auth_provider") // "google", "credentials", "apple"
+  name         String?
+  locale       String    @default("en-US")
+  timezone     String    @default("America/New_York")
+  
+  // Preferences
+  homeAirports String[]  @map("home_airports") // Array of IATA codes
+  defaultCabin String    @default("economy") @map("default_cabin")
+  
+  // Consent & Privacy
+  marketingConsent   Boolean   @default(false) @map("marketing_consent")
+  cardSuggestionsConsent Boolean @default(false) @map("card_suggestions_consent")
+  analyticsConsent   Boolean   @default(true) @map("analytics_consent")
+  
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  lastActiveAt DateTime? @map("last_active_at")
+  
+  // Relations
+  programs      UserProgram[]
+  cards         UserCard[]
+  watchers      Watcher[]
+  trips         Trip[]
+  alerts        Alert[]
+  notifications Notification[]
+  affiliateClicks AffiliateClick[]
+  exports       DataExport[]
+  
+  @@map("users")
+  @@index([email])
+  @@index([deletedAt])
+  @@index([lastActiveAt])
+}
+
+// ============================================================================
+// LOYALTY PROGRAMS
+// ============================================================================
+
+model LoyaltyProgram {
+  id          String   @id @default(uuid())
+  type        ProgramType
+  code        String   @unique // "AA", "DELTA", "MARRIOTT", etc.
+  name        String   // "American Airlines AAdvantage"
+  alliance    String?  // "Star Alliance", "OneWorld", "SkyTeam"
+  currency    String   // "miles", "points"
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  // Transfer partners (JSON array of codes)
+  transferPartners Json? @map("transfer_partners")
+  
+  // Metadata
+  logoUrl     String?  @map("logo_url")
+  websiteUrl  String?  @map("website_url")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  userPrograms UserProgram[]
+  deals        Deal[]
+  
+  @@map("loyalty_programs")
+  @@index([type])
+  @@index([code])
+}
+
+enum ProgramType {
+  airline
+  hotel
+  credit_card
+}
+
+model UserProgram {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  programId   String   @map("program_id")
+  
+  // Program details (encrypted)
+  memberId    String?  @map("member_id") // Encrypted
+  statusLevel String?  @map("status_level") // "Gold", "Platinum", etc.
+  notes       String?
+  
+  // Metadata
+  addedAt     DateTime @default(now()) @map("added_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, programId])
+  @@map("user_programs")
+  @@index([userId])
+}
+
+// ============================================================================
+// CREDIT CARDS
+// ============================================================================
+
+model CreditCardCatalog {
+  id            String   @id @default(uuid())
+  issuer        String   // "Chase", "Amex", "Capital One"
+  name          String   // "Chase Sapphire Preferred"
+  network       String   // "Visa", "Mastercard", "Amex"
+  
+  // Benefits
+  annualFee     Int      @map("annual_fee") // In cents
+  bonusPoints   Int?     @map("bonus_points")
+  bonusSpend    Int?     @map("bonus_spend") // Spend required for bonus
+  bonusMonths   Int?     @map("bonus_months")
+  
+  // Transfer partners (array of program codes)
+  programsLinked String[] @map("programs_linked")
+  transferRatio  String?  @map("transfer_ratio") // "1:1", "1:1.5"
+  
+  // Affiliate
+  affiliateUrl  String?  @map("affiliate_url")
+  affiliateNetwork String? @map("affiliate_network") // "Impact", "CJ"
+  commissionRate Decimal? @map("commission_rate") @db.Decimal(5, 2)
+  
+  // Status
+  isActive      Boolean  @default(true) @map("is_active")
+  isVisible     Boolean  @default(true) @map("is_visible")
+  
+  // Metadata
+  imageUrl      String?  @map("image_url")
+  description   String?  @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  userCards UserCard[]
+  
+  @@map("credit_card_catalog")
+  @@index([issuer])
+  @@index([isActive, isVisible])
+}
+
+model UserCard {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  cardId   String   @map("card_id")
+  
+  // Card lifecycle
+  openedAt  DateTime? @map("opened_at")
+  closedAt  DateTime? @map("closed_at")
+  notes     String?   @db.Text
+  
+  // Metadata
+  addedAt   DateTime @default(now()) @map("added_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card CreditCardCatalog  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, cardId])
+  @@map("user_cards")
+  @@index([userId])
+}
+
+// ============================================================================
+// WATCHERS (SAVED SEARCHES)
+// ============================================================================
+
+model Watcher {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  
+  // Search parameters
+  name        String?  // User-defined name
+  origins     String[] // IATA codes
+  destinations String[] // IATA codes or ["ANYWHERE"]
+  
+  // Date flexibility
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  flexDays    Int       @default(0) @map("flex_days") // ±N days
+  
+  // Passenger & cabin
+  cabin       String    @default("economy")
+  passengers  Int       @default(1)
+  
+  // Filters
+  programsFilter String[] @map("programs_filter") // Empty = all programs
+  maxStops       Int?     @map("max_stops")
+  minValue       Decimal? @map("min_value") @db.Decimal(5, 2) // Min cpp
+  
+  // Scheduling
+  frequencyMinutes Int      @map("frequency_minutes") @default(360) // 6 hours
+  lastRunAt        DateTime? @map("last_run_at")
+  nextRunAt        DateTime? @map("next_run_at")
+  runCount         Int       @default(0) @map("run_count")
+  
+  // Status
+  isActive    Boolean  @default(true) @map("is_active")
+  isPaused    Boolean  @default(false) @map("is_paused")
+  
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deals Deal[]
+  
+  @@map("watchers")
+  @@index([userId])
+  @@index([isActive, isPaused, nextRunAt])
+  @@index([nextRunAt])
+}
+
+// ============================================================================
+// DEALS
+// ============================================================================
+
+model Deal {
+  id         String   @id @default(uuid())
+  watcherId  String?  @map("watcher_id") // Null if found via manual search
+  userId     String   @map("user_id") // Denormalized for easier queries
+  
+  // Deal type
+  type       DealType
+  provider   String   // "united", "booking.com", "viator"
+  
+  // Route/location
+  origin     String?  // IATA code for flights
+  destination String? // IATA code for flights, city for hotels
+  
+  // Dates
+  departDate DateTime? @map("depart_date")
+  returnDate DateTime? @map("return_date")
+  
+  // Pricing
+  pointsCost  Int?     @map("points_cost")
+  cashCost    Decimal? @map("cash_cost") @db.Decimal(10, 2)
+  taxesFees   Decimal? @map("taxes_fees") @db.Decimal(10, 2)
+  cpp         Decimal? @db.Decimal(5, 2) // Cents per point
+  
+  // Award details
+  programId   String?  @map("program_id")
+  cabin       String?
+  stops       Int?
+  duration    Int?     // Minutes
+  
+  // Booking
+  bookingUrl  String   @map("booking_url") @db.Text
+  deepLink    String?  @map("deep_link") @db.Text // Affiliate deep link
+  
+  // Status
+  isAvailable Boolean  @default(true) @map("is_available")
+  expiresAt   DateTime? @map("expires_at")
+  
+  // Metadata (flexible JSON for deal-specific data)
+  metadata    Json?
+  
+  // Tracking
+  viewCount   Int      @default(0) @map("view_count")
+  clickCount  Int      @default(0) @map("click_count")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  watcher  Watcher? @relation(fields: [watcherId], references: [id], onDelete: SetNull)
+  program  LoyaltyProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  alerts   Alert[]
+  tripItems TripItem[]
+  
+  @@map("deals")
+  @@index([userId])
+  @@index([watcherId])
+  @@index([type])
+  @@index([expiresAt])
+  @@index([isAvailable, expiresAt])
+  @@index([origin, destination, departDate])
+}
+
+enum DealType {
+  award_flight
+  cash_flight
+  hotel
+  activity
+  esim
+  insurance
+}
+
+// ============================================================================
+// ALERTS & NOTIFICATIONS
+// ============================================================================
+
+model Alert {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  dealId   String   @map("deal_id")
+  
+  // Delivery
+  channel  AlertChannel
+  sentAt   DateTime? @map("sent_at")
+  openedAt DateTime? @map("opened_at")
+  clickedAt DateTime? @map("clicked_at")
+  
+  // Status
+  status   AlertStatus @default(pending)
+  error    String?     @db.Text
+  retryCount Int      @default(0) @map("retry_count")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  @@map("alerts")
+  @@index([userId])
+  @@index([dealId])
+  @@index([status, createdAt])
+}
+
+enum AlertChannel {
+  email
+  push
+  sms
+}
+
+enum AlertStatus {
+  pending
+  sent
+  failed
+  opened
+  clicked
+}
+
+model Notification {
+  id      String   @id @default(uuid())
+  userId  String   @map("user_id")
+  
+  // Content
+  type    NotificationType
+  title   String
+  message String   @db.Text
+  linkUrl String?  @map("link_url")
+  
+  // Status
+  isRead  Boolean  @default(false) @map("is_read")
+  readAt  DateTime? @map("read_at")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+enum NotificationType {
+  deal_found
+  watcher_paused
+  trip_reminder
+  system
+  card_recommendation
+}
+
+// ============================================================================
+// TRIPS & ITINERARIES
+// ============================================================================
+
+model Trip {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  
+  // Trip details
+  name        String
+  destination String
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  
+  // Metadata
+  coverImage  String?  @map("cover_image")
+  notes       String?  @db.Text
+  
+  // Sharing
+  shareToken  String?  @unique @map("share_token")
+  isPublic    Boolean  @default(false) @map("is_public")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items TripItem[]
+  
+  @@map("trips")
+  @@index([userId])
+  @@index([shareToken])
+  @@index([startDate])
+}
+
+model TripItem {
+  id       String   @id @default(uuid())
+  tripId   String   @map("trip_id")
+  
+  // Item details
+  type     TripItemType
+  dealId   String?  @map("deal_id") // Reference to deal if applicable
+  
+  // Timeline
+  day      Int      // Day of trip (1-indexed)
+  order    Int      // Order within day
+  date     DateTime?
+  
+  // Manual item data (if not from deal)
+  title    String?
+  description String? @db.Text
+  location String?
+  cost     Decimal? @db.Decimal(10, 2)
+  bookingRef String? @map("booking_ref")
+  notes    String?  @db.Text
+  
+  // Metadata
+  metadata Json?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  deal Deal? @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  
+  @@map("trip_items")
+  @@index([tripId, day, order])
+  @@index([dealId])
+}
+
+enum TripItemType {
+  flight
+  hotel
+  activity
+  rental_car
+  note
+  other
+}
+
+// ============================================================================
+// AFFILIATE TRACKING
+// ============================================================================
+
+model AffiliateClick {
+  id       String   @id @default(uuid())
+  userId   String?  @map("user_id") // Null if not logged in
+  
+  // Affiliate details
+  program  String   // "booking.com", "expedia", "viator"
+  category String   // "hotel", "activity", "flight"
+  network  String?  // "CJ", "Impact", "Booking Affiliate"
+  
+  // Click data
+  clickUrl String   @map("click_url") @db.Text
+  sourceUrl String? @map("source_url") @db.Text
+  
+  // Attribution
+  cookieId String?  @map("cookie_id") // For attribution
+  sessionId String? @map("session_id")
+  
+  // Conversion tracking
+  converted Boolean  @default(false)
+  convertedAt DateTime? @map("converted_at")
+  revenueEstimate Decimal? @map("revenue_estimate") @db.Decimal(10, 2)
+  commissionEarned Decimal? @map("commission_earned") @db.Decimal(10, 2)
+  
+  // Status
+  status   ClickStatus @default(pending)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("affiliate_clicks")
+  @@index([userId])
+  @@index([cookieId])
+  @@index([program, createdAt])
+  @@index([converted, convertedAt])
+}
+
+enum ClickStatus {
+  pending
+  clicked
+  converted
+  reversed
+}
+
+// ============================================================================
+// ADMIN & SYSTEM
+// ============================================================================
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?  @db.Text
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  
+  // Rollout
+  rolloutPercentage Int @default(0) @map("rollout_percentage") // 0-100
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("feature_flags")
+}
+
+model ApiUsage {
+  id        String   @id @default(uuid())
+  
+  // API details
+  provider  String   // "united", "booking.com"
+  endpoint  String
+  method    String
+  
+  // Cost
+  costCents Int      @map("cost_cents")
+  
+  // Metadata
+  userId    String?  @map("user_id")
+  watcherId String?  @map("watcher_id")
+  cacheHit  Boolean  @default(false) @map("cache_hit")
+  latencyMs Int?     @map("latency_ms")
+  statusCode Int?    @map("status_code")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("api_usage")
+  @@index([provider, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model DataExport {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  
+  // Export details
+  status   ExportStatus @default(pending)
+  format   String       @default("json")
+  fileUrl  String?      @map("file_url")
+  fileSize Int?         @map("file_size") // Bytes
+  
+  // Error handling
+  error    String?      @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+  expiresAt DateTime   @map("expires_at") // Auto-delete after 7 days
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("data_exports")
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum ExportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  
+  // Actor
+  userId    String?  @map("user_id")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  
+  // Action
+  action    String
+  entity    String   // "user", "watcher", "deal"
+  entityId  String?  @map("entity_id")
+  
+  // Details
+  changes   Json?    // Before/after values
+  metadata  Json?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("audit_logs")
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// CACHE & PERFORMANCE
+// ============================================================================
+
+model SearchCache {
+  id        String   @id @default(uuid())
+  
+  // Cache key components
+  cacheKey  String   @unique @map("cache_key")
+  origin    String?
+  destination String?
+  date      DateTime?
+  cabin     String?
+  program   String?
+  
+  // Cached data
+  results   Json
+  hitCount  Int      @default(0) @map("hit_count")
+  
+  // TTL
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("search_cache")
+  @@index([cacheKey])
+  @@index([expiresAt])
+  @@index([origin, destination, date])
+}

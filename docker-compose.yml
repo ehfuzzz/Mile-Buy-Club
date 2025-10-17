@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: milebyclub-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-milebyclub}
+      POSTGRES_USER: ${POSTGRES_USER:-dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+      POSTGRES_INITDB_ARGS: "-c max_connections=200"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - milebyclub
+
+  # Redis Cache & Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: milebyclub-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - milebyclub
+
+  # Mailhog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: milebyclub-mailhog
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - milebyclub
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  milebyclub:
+    driver: bridge

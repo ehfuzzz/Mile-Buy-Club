@@ -1,0 +1,58 @@
+{
+  "$schema": "https://turbo.build/json-schema.json",
+  "globalDependencies": ["**/.env.local", "**/.env"],
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build", "^type-check"],
+      "outputs": ["dist/**", ".next/**", ".nuxt/**"],
+      "cache": true
+    },
+    "lint": {
+      "outputs": [],
+      "cache": false
+    },
+    "lint:fix": {
+      "cache": false,
+      "dependsOn": []
+    },
+    "type-check": {
+      "outputs": [],
+      "cache": true
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "test:watch": {
+      "outputs": [],
+      "cache": false
+    },
+    "test:coverage": {
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": true,
+      "outputs": ["prisma/**"]
+    },
+    "db:push": {
+      "cache": false,
+      "dependsOn": ["db:generate"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "dependsOn": ["db:generate"]
+    },
+    "db:studio": {
+      "cache": false
+    }
+  }
+}
