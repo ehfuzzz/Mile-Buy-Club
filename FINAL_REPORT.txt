@@ -154,11 +154,11 @@ PHASE 2: Backend Infrastructure (4-5 hours)
    Model: 🔴 Sonnet 4 | 🟣 Haiku for PROMPT 6
 
 PHASE 3: Frontend Architecture (3-4 hours)
-├─ PROMPT 7: NextAuth Setup
-├─ PROMPT 15: Notifications UI
-├─ PROMPT 19: PWA Setup
-├─ SONNET 5: Deal Ranking
-└─ SONNET 6: Notification Delivery
+├─ PROMPT 7: NextAuth Setup (🟡 Codex: route/helpers/middleware)
+├─ PROMPT 15: Notifications UI (🟡 Codex: client SDK/API stubs)
+├─ PROMPT 19: PWA Setup (🟡 Codex: manifest/icons/sw)
+├─ SONNET 5: Deal Ranking (🟡 Codex: ranking-preview adapter)
+└─ SONNET 6: Notification Delivery (🟡 Codex: client SDK hooks)
    Model: 🟣 Haiku + 🔴 Sonnet (parallel)
 
 PHASE 4: UX Flows (6-8 hours)
