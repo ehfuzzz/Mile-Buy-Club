@@ -449,3 +449,55 @@ Notes
 - Deliver in small PRs per batch to reduce merge conflict risk.
 
 ================================================================================
+CODEX DELEGATION STATUS
+================================================================================
+
+Codex has been provided with CODEX_START_HERE.md containing 4 independent batches
+to work in parallel with Haiku. All batches are non-blocking and can run concurrently.
+
+Batch A: PWA Setup (Independent)
+Status: 🔄 Delegated to Codex
+Files to create:
+  • apps/web/app/manifest.ts (webmanifest metadata)
+  • apps/web/public/icons/icon-192.png, icon-512.png, apple-touch-icon.png
+  • apps/web/public/sw.js (service worker with cache strategy + offline fallback)
+  • Update apps/web/app/layout.tsx (add manifest link, theme-color meta)
+Acceptance: Lighthouse PWA checks pass; offline returns fallback page
+
+Batch B: NextAuth Authentication (Independent)
+Status: 🔄 Delegated to Codex
+Files to create:
+  • apps/web/app/api/auth/[...nextauth]/route.ts (Google OAuth + Credentials, JWT callbacks)
+  • apps/web/lib/auth.ts (authOptions, getServerSession, requireAuth helpers)
+  • apps/web/middleware.ts (protect /dashboard/*, redirect to /login)
+Acceptance: /api/auth/signin renders; session has user.id & user.email; /dashboard redirects if not auth
+
+Batch C: Notifications Client SDK (Independent)
+Status: 🔄 Delegated to Codex
+Files to create:
+  • apps/web/lib/notifications/client.ts (requestPermission, subscribe/unsubscribe, unread count)
+  • apps/web/lib/notifications/api.ts (stubs for subscribe/unsubscribe/mark-read endpoints)
+  • apps/web/lib/notifications/types.ts (NotificationItem interface)
+Acceptance: Importable, no runtime errors, unit-testable, works with UI stubs
+
+Batch D: Deal Ranking Adapter (Independent)
+Status: 🔄 Delegated to Codex
+Files to create:
+  • apps/web/lib/ranking-preview.ts (computeUiScore deterministic function, score 0-100)
+Acceptance: Stable score by price/cpp, unit-testable, drop-in for UI badges
+
+Haiku (this agent) will work on parallel UI tasks:
+  • PROMPT 7 (UI): Login/Register pages, AuthProvider, UserButton, ProtectedRoute
+  • PROMPT 15 (UI): Notification bell, dropdown, center panel, settings toggles
+  • PROMPT 19 (UI): InstallPrompt, OfflineFallback components
+  • SONNET 5 (UI): Sort/filter controls, value score badge
+  • SONNET 6 (UI): Preferences page, frequency selector, status banners
+
+Integration model:
+  • Codex provides typed stubs and utilities
+  • Haiku builds UI against those stubs
+  • Swap to real implementations when complete
+  • Small PR per batch to minimize merge conflicts
+  • GitHub repo: https://github.com/ehfuzzz/Mile-Buy-Club (main branch)
+
+================================================================================
