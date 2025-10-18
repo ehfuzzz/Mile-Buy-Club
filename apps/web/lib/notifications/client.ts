@@ -50,7 +50,7 @@ export async function subscribeToPush(options?: {
 
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-      applicationServerKey: options?.applicationServerKey as string
+    applicationServerKey: options?.applicationServerKey as string | BufferSource | null | undefined
   });
 
   try {
