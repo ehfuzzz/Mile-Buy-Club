@@ -1,0 +1,257 @@
+{
+  "cards": [
+    {
+      "id": "chase-sapphire-reserve",
+      "name": "Chase Sapphire Reserve",
+      "issuer": "Chase",
+      "network": "Visa",
+      "annualFee": 550,
+      "programs": ["Chase Ultimate Rewards"],
+      "signupBonus": {
+        "points": 60000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 900
+      },
+      "earningRates": [
+        { "category": "travel", "rate": 3 },
+        { "category": "dining", "rate": 3 },
+        { "category": "other", "rate": 1 }
+      ],
+      "benefits": [
+        "$300 annual travel credit",
+        "Priority Pass lounge access",
+        "Global Entry/TSA PreCheck credit",
+        "No foreign transaction fees",
+        "Primary rental car insurance"
+      ],
+      "transferPartners": [
+        "United MileagePlus",
+        "Southwest Rapid Rewards",
+        "World of Hyatt",
+        "Marriott Bonvoy",
+        "Virgin Atlantic"
+      ],
+      "valuationCPP": 1.5,
+      "bestFor": ["travel", "premium", "lounge-access"]
+    },
+    {
+      "id": "amex-platinum",
+      "name": "American Express Platinum",
+      "issuer": "American Express",
+      "network": "American Express",
+      "annualFee": 695,
+      "programs": ["Amex Membership Rewards"],
+      "signupBonus": {
+        "points": 80000,
+        "requirement": "Spend $6,000 in 6 months",
+        "value": 1600
+      },
+      "earningRates": [
+        { "category": "flights", "rate": 5 },
+        { "category": "hotels", "rate": 5 },
+        { "category": "other", "rate": 1 }
+      ],
+      "benefits": [
+        "$200 airline fee credit",
+        "$200 hotel credit",
+        "$189 CLEAR credit",
+        "Centurion lounge access",
+        "Priority Pass lounge access",
+        "Global Entry/TSA PreCheck credit"
+      ],
+      "transferPartners": [
+        "Delta SkyMiles",
+        "Air France/KLM Flying Blue",
+        "British Airways Avios",
+        "Marriott Bonvoy",
+        "Hilton Honors"
+      ],
+      "valuationCPP": 2.0,
+      "bestFor": ["luxury-travel", "lounge-access", "airline-elite"]
+    },
+    {
+      "id": "citi-prestige",
+      "name": "Citi Prestige Card",
+      "issuer": "Citi",
+      "network": "Mastercard",
+      "annualFee": 495,
+      "programs": ["Citi ThankYou Points"],
+      "signupBonus": {
+        "points": 50000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 800
+      },
+      "earningRates": [
+        { "category": "travel", "rate": 5 },
+        { "category": "dining", "rate": 5 },
+        { "category": "entertainment", "rate": 5 },
+        { "category": "other", "rate": 1 }
+      },
+      "benefits": [
+        "$250 annual air travel credit",
+        "4th night hotel free",
+        "Priority Pass lounge access",
+        "No foreign transaction fees"
+      ],
+      "transferPartners": [
+        "Singapore Airlines KrisFlyer",
+        "Virgin Atlantic",
+        "JetBlue TrueBlue",
+        "Turkish Airlines",
+        "Hilton Honors"
+      ],
+      "valuationCPP": 1.6,
+      "bestFor": ["hotel-stays", "dining", "travel"]
+    },
+    {
+      "id": "capital-one-venture-x",
+      "name": "Capital One Venture X",
+      "issuer": "Capital One",
+      "network": "Visa",
+      "annualFee": 395,
+      "programs": ["Capital One Miles"],
+      "signupBonus": {
+        "points": 75000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 750
+      },
+      "earningRates": [
+        { "category": "hotels", "rate": 10 },
+        { "category": "rentals", "rate": 10 },
+        { "category": "travel", "rate": 2 },
+        { "category": "other", "rate": 2 }
+      ],
+      "benefits": [
+        "$300 annual travel credit",
+        "Priority Pass lounge access",
+        "Capital One lounge access",
+        "$100 TSA PreCheck/Global Entry credit",
+        "10,000 anniversary bonus miles"
+      ],
+      "transferPartners": [
+        "Turkish Airlines",
+        "Air Canada Aeroplan",
+        "Singapore Airlines KrisFlyer",
+        "Avianca LifeMiles"
+      ],
+      "valuationCPP": 1.0,
+      "bestFor": ["simple-redemption", "lounge-access", "hotels"]
+    },
+    {
+      "id": "chase-freedom-unlimited",
+      "name": "Chase Freedom Unlimited",
+      "issuer": "Chase",
+      "network": "Visa",
+      "annualFee": 0,
+      "programs": ["Chase Ultimate Rewards"],
+      "signupBonus": {
+        "points": 20000,
+        "requirement": "Spend $500 in 3 months",
+        "value": 200
+      },
+      "earningRates": [
+        { "category": "travel", "rate": 5 },
+        { "category": "dining", "rate": 3 },
+        { "category": "drugstore", "rate": 3 },
+        { "category": "other", "rate": 1.5 }
+      ],
+      "benefits": [
+        "No annual fee",
+        "No foreign transaction fees",
+        "Cell phone protection",
+        "Auto rental collision coverage"
+      ],
+      "transferPartners": [],
+      "valuationCPP": 1.5,
+      "bestFor": ["no-fee", "everyday-spending", "chase-ecosystem"]
+    },
+    {
+      "id": "bilt-mastercard",
+      "name": "Bilt Mastercard",
+      "issuer": "Wells Fargo",
+      "network": "Mastercard",
+      "annualFee": 0,
+      "programs": ["Bilt Rewards"],
+      "signupBonus": {
+        "points": 15000,
+        "requirement": "Spend $1,000 in 3 months",
+        "value": 300
+      },
+      "earningRates": [
+        { "category": "rent", "rate": 1 },
+        { "category": "travel", "rate": 2 },
+        { "category": "dining", "rate": 3 },
+        { "category": "other", "rate": 1 }
+      ],
+      "benefits": [
+        "Earn points on rent (no fee)",
+        "Neighborhood rewards",
+        "Fitness membership perks",
+        "Transfer to airline/hotel partners"
+      ],
+      "transferPartners": [
+        "United MileagePlus",
+        "American Airlines AAdvantage",
+        "World of Hyatt",
+        "IHG Rewards",
+        "Virgin Atlantic"
+      ],
+      "valuationCPP": 2.0,
+      "bestFor": ["rent-payment", "no-fee", "flexible-transfers"]
+    },
+    {
+      "id": "marriott-bonvoy-boundless",
+      "name": "Marriott Bonvoy Boundless",
+      "issuer": "Chase",
+      "network": "Visa",
+      "annualFee": 95,
+      "programs": ["Marriott Bonvoy"],
+      "signupBonus": {
+        "points": 75000,
+        "requirement": "Spend $3,000 in 3 months",
+        "value": 600
+      },
+      "earningRates": [
+        { "category": "marriott", "rate": 6 },
+        { "category": "other", "rate": 2 }
+      ],
+      "benefits": [
+        "Annual free night certificate (up to 50k points)",
+        "Silver Elite status",
+        "No foreign transaction fees"
+      ],
+      "transferPartners": [],
+      "valuationCPP": 0.8,
+      "bestFor": ["marriott-stays", "hotel-elite", "anniversary-night"]
+    },
+    {
+      "id": "hilton-honors-aspire",
+      "name": "Hilton Honors American Express Aspire",
+      "issuer": "American Express",
+      "network": "American Express",
+      "annualFee": 450,
+      "programs": ["Hilton Honors"],
+      "signupBonus": {
+        "points": 150000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 750
+      },
+      "earningRates": [
+        { "category": "hilton", "rate": 14 },
+        { "category": "dining", "rate": 7 },
+        { "category": "travel", "rate": 7 },
+        { "category": "other", "rate": 3 }
+      },
+      "benefits": [
+        "$250 airline fee credit",
+        "$250 Hilton resort credit",
+        "Priority Pass lounge access",
+        "Diamond elite status",
+        "Annual free weekend night"
+      ],
+      "transferPartners": [],
+      "valuationCPP": 0.5,
+      "bestFor": ["hilton-stays", "diamond-status", "resort-credits"]
+    }
+  ]
+}
