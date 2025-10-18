@@ -3,6 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
+import { QueueModule } from './jobs/queue.module';
+import { ProvidersModule } from './providers/providers.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -11,6 +14,9 @@ import { UsersModule } from './users/users.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    ProvidersModule,
+    NotificationsModule,
+    QueueModule,
     HealthModule,
     UsersModule,
   ],

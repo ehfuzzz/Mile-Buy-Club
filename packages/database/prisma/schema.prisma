@@ -233,7 +233,8 @@ model Deal {
   id            String    @id @default(cuid())
   watcherId     String
   userId        String
-  
+  externalId    String
+
   // Deal details
   title         String
   description   String?
@@ -246,13 +247,21 @@ model Deal {
   returnDate    DateTime?
   cabin         String?
   airline       String?
-  
+  availability  Int?
+
   // Pricing
   price         Float
   currency      String    @default("USD")
   basePrice     Float?
   taxes         Float?
-  
+  cashPrice     Float?
+  cashCurrency  String?
+  pointsCashPrice Float?
+  pointsCashCurrency String?
+  pointsCashMiles Int?
+  primaryPricingType String?
+  pricingOptions Json?
+
   // CPP/Value
   milesRequired Int?
   cpp           Float?    // cents per point
@@ -265,11 +274,11 @@ model Deal {
   // Booking info
   bookingUrl    String?
   provider      String?
-  
+
   // Status
   status        String    @default("active") // active, expired, booked, hidden
   isNew         Boolean   @default(true)
-  
+
   // Relations
   watcher       Watcher   @relation(fields: [watcherId], references: [id], onDelete: Cascade)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -286,6 +295,7 @@ model Deal {
   @@index([score])
   @@index([createdAt])
   @@index([expiresAt])
+  @@unique([watcherId, provider, externalId])
 }
 
 model SavedDeal {
@@ -334,14 +344,15 @@ model Alert {
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   deal          Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  
+
   createdAt     DateTime  @default(now())
   readAt        DateTime?
-  
+
   @@index([userId])
   @@index([dealId])
   @@index([isRead])
   @@index([createdAt])
+  @@unique([userId, dealId, type])
 }
 
 // ============================================================================

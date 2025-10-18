@@ -76,6 +76,15 @@ mile-buy-club/
 - Turborepo
 - ESLint & Prettier
 
+### Flight Provider Capabilities
+
+The stack now supports both award searches _and_ cash fares:
+
+- **SeatsAero** and **Point.Me** surface real-time award inventory with miles, taxes/fees, and segment metadata. Each provider also publishes an estimated *points + cash* blend so travelers can see how much cash would be due if they offset a portion of the miles.
+- **Kiwi (Tequila API)** delivers paid inventory, including historically cheap cash fares, cabin data, and deep links for booking.
+
+Watcher jobs merge these sources into unified deals with detailed pricing options (award-only, points + cash, and full cash) so users without large mileage balances can still act on attractive bargains. Each watcher run now evaluates every pricing path independently and cross-checks seat availability—expired or sold-out itineraries are removed automatically so only live inventory triggers alerts.
+
 ## Available Commands
 
 ```bash
@@ -105,29 +114,36 @@ npm run build --scope=@mile/api  # Build just backend
 - TypeScript & ESLint configuration
 - Docker development environment
 
-### Phase 2: Backend Infrastructure
+### Phase 2: ✅ Backend Infrastructure
 - NestJS API foundation
-- Prisma database schema  
+- Prisma database schema
 - Provider abstraction layer
 - Background job scheduler
 
-### Phase 3: Frontend Architecture
+### Phase 3: ✅ Frontend Architecture
 - Next.js & NextAuth setup
 - PWA configuration
 - Notification system
 
-### Phase 4: User Experience
+### Phase 4: ✅ User Experience
 - Onboarding flow
 - Watcher/search creation
 - Deal display & filtering
 - Trip planning board
 
-### Phase 5: Production Ready
-- Error handling & validation
-- Rate limiting & cost controls
-- Logging & monitoring
-- Security hardening
-- Testing suite
+### Phase 5: 🚧 Production Ready (in progress)
+- ✅ Card recommendation UI
+- ✅ Admin dashboard
+- ✅ Email templates
+- ✅ Error handling & validation UX
+- ✅ Rate limiting controls
+- ✅ Logging & monitoring
+- ✅ Security hardening
+- ☐ Caching & search optimization
+- ☐ Privacy & GDPR compliance
+- ☐ Admin cost dashboard
+- ☐ Integration test harness
+- ☐ Testing suite
 
 ## Contributing
 
