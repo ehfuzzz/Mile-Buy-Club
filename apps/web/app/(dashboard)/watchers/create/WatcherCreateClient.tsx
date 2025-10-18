@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { createWatcher, type WatcherFormValues } from "../../../lib/watchers";
-import { WatcherForm } from "../../../components/watchers/WatcherForm";
+import { createWatcher, type WatcherFormValues } from "../../../../lib/watchers";
+import { WatcherForm } from "../../../../components/watchers/WatcherForm";
 
 export function WatcherCreateClient() {
   const router = useRouter();
