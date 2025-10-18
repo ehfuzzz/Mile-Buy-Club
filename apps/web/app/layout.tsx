@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   },
   description: "Join the premier hub for monitoring award travel deals and mileage arbitrage.",
   themeColor: THEME_COLOR,
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/api/pwa-icon/192", sizes: "192x192" },
@@ -28,13 +29,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <meta name="theme-color" content={THEME_COLOR} />
-        <link rel="icon" href="/api/pwa-icon/192" sizes="192x192" />
-        <link rel="icon" href="/api/pwa-icon/512" sizes="512x512" />
-        <link rel="apple-touch-icon" href="/api/pwa-icon/apple" sizes="180x180" />
-      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );

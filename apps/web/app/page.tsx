@@ -1,3 +1,5 @@
+import styles from "./page.module.css";
+
 const features = [
   {
     title: "Real-time deal tracking",
@@ -15,29 +17,29 @@ const features = [
 
 export default function HomePage() {
   return (
-    <main>
-      <section className="hero-section">
-        <span className="hero-pill">Mileage intelligence for frequent flyers</span>
-        <h1 className="hero-title">Find award flight deals automatically</h1>
-        <p className="hero-description">
+    <main className={styles.main}>
+      <section className={styles.hero}>
+        <span className={styles.heroPill}>Mileage intelligence for frequent flyers</span>
+        <h1 className={styles.heroTitle}>Find award flight deals automatically</h1>
+        <p className={styles.heroDescription}>
           Mile Buy Club continuously watches your favorite programs, ranks mileage redemptions, and keeps your next trip within
           reach.
         </p>
-        <div className="hero-actions">
-          <a href="/register" className="button-primary">
+        <div className={styles.actions}>
+          <a href="/register" className={styles.primaryCta}>
             Get Started
           </a>
-          <a href="/login" className="button-outline">
+          <a href="/login" className={styles.secondaryCta}>
             Sign In
           </a>
         </div>
       </section>
 
-      <section className="features-section">
+      <section className={styles.features}>
         {features.map((feature) => (
-          <article key={feature.title} className="feature-card">
-            <h2>{feature.title}</h2>
-            <p>{feature.description}</p>
+          <article key={feature.title} className={styles.featureCard}>
+            <h2 className={styles.featureTitle}>{feature.title}</h2>
+            <p className={styles.featureCopy}>{feature.description}</p>
           </article>
         ))}
       </section>
