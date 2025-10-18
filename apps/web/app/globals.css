@@ -1,15 +1,144 @@
 :root {
   color-scheme: light dark;
+  --background: 15 23 42;
+  --foreground: 248 250 252;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #34d399;
+  color: #0f172a;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  text-decoration: none;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.button-primary:hover {
+  background-color: #6ee7b7;
+}
+
+.button-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: #f8fafc;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.button-outline:hover {
+  border-color: rgba(148, 163, 184, 0.7);
+}
+
+.hero-section {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 6rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.hero-pill {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.hero-description {
+  max-width: 36rem;
+  color: rgba(226, 232, 240, 0.85);
+  font-size: clamp(1.125rem, 3vw, 1.375rem);
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .hero-actions {
+    flex-direction: row;
+  }
+}
+
+.features-section {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 6rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .features-section {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.feature-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  text-align: left;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.5);
+}
+
+.feature-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.feature-card p {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.95rem;
 }
