@@ -12,7 +12,6 @@ import {
   CheckCircle, 
   RefreshCw, 
   Settings,
-  Zap,
   Shield
 } from 'lucide-react';
 
@@ -176,7 +175,7 @@ export function RateLimitIndicator({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              You've reached the rate limit. Please wait for the reset time or upgrade your plan for higher limits.
+              You&apos;ve reached the rate limit. Please wait for the reset time or upgrade your plan for higher limits.
             </AlertDescription>
           </Alert>
         )}
@@ -185,7 +184,7 @@ export function RateLimitIndicator({
           <Alert>
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              You're approaching the rate limit. Consider upgrading your plan for higher limits.
+              You&apos;re approaching the rate limit. Consider upgrading your plan for higher limits.
             </AlertDescription>
           </Alert>
         )}
@@ -213,7 +212,7 @@ export function RateLimitIndicator({
 
 // Rate limit dashboard component
 export function RateLimitDashboard() {
-  const [rateLimits, setRateLimits] = useState<RateLimitData[]>([
+  const [rateLimits] = useState<RateLimitData[]>([
     {
       current: 45,
       limit: 100,

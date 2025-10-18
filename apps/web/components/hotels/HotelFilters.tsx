@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+// import { ChevronDown } from 'lucide-react';
 
 interface HotelFiltersProps {
   filters: any;

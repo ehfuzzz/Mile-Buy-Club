@@ -272,7 +272,7 @@ export function CardRecommendationEmail({
           
           <div className="content">
             <p>Hi {userName},</p>
-            <p>We've analyzed your current credit card portfolio and found some excellent opportunities to maximize your travel rewards. Here are our top recommendations:</p>
+            <p>We&apos;ve analyzed your current credit card portfolio and found some excellent opportunities to maximize your travel rewards. Here are our top recommendations:</p>
             
             <div className="analysis-section">
               <h3 className="analysis-title">📊 Your Portfolio Analysis</h3>

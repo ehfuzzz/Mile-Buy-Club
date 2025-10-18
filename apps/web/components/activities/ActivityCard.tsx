@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Star, Clock, Users, Heart, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+// import Link from 'next/link';
 
 interface ActivityCardProps {
   activity: {

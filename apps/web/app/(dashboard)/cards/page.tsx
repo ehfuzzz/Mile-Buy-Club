@@ -1,10 +1,11 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CardRecommendationCard } from '@/components/cards/CardRecommendationCard';
 import { PortfolioAnalysis } from '@/components/cards/PortfolioAnalysis';
 import { CardFilters } from '@/components/cards/CardFilters';
-import { CreditCard, TrendingUp, Star, Shield, Award } from 'lucide-react';
+import { CreditCard, TrendingUp, Star, Award } from 'lucide-react';
 
 export default function CardRecommendationsPage() {
   return (

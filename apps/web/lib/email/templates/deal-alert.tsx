@@ -171,7 +171,7 @@ export function DealAlertEmail({ userName, deal, watcherName }: DealAlertEmailPr
           
           <div className="content">
             <p>Hi {userName},</p>
-            <p>Great news! We found a fantastic deal that matches your watcher criteria. This deal has a high value score and won't last long!</p>
+            <p>Great news! We found a fantastic deal that matches your watcher criteria. This deal has a high value score and won&apos;t last long!</p>
             
             <div className="deal-card">
               <div className="deal-header">
@@ -217,7 +217,7 @@ export function DealAlertEmail({ userName, deal, watcherName }: DealAlertEmailPr
               </div>
             </div>
             
-            <p>This deal was found by your watcher and has been automatically scored based on your preferences. Don't miss out!</p>
+            <p>This deal was found by your watcher and has been automatically scored based on your preferences. Don&apos;t miss out!</p>
             
             <p>Happy travels!<br />The Mile Buy Club Team</p>
           </div>

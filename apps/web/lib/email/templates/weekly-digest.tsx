@@ -238,7 +238,7 @@ export function WeeklyDigestEmail({
           
           <div className="content">
             <p>Hi {userName},</p>
-            <p>Here's your weekly summary of the best deals we found for you. We've been busy monitoring your watchers and found some incredible opportunities!</p>
+            <p>Here&apos;s your weekly summary of the best deals we found for you. We&apos;ve been busy monitoring your watchers and found some incredible opportunities!</p>
             
             <div className="stats-grid">
               <div className="stat-card">
@@ -260,7 +260,7 @@ export function WeeklyDigestEmail({
             </div>
             
             <div className="section">
-              <h2 className="section-title">🔥 This Week's Top Deals</h2>
+              <h2 className="section-title">🔥 This Week&apos;s Top Deals</h2>
               {topDeals.map((deal, index) => (
                 <div key={index} className="deal-card">
                   <div className="deal-header">
@@ -313,7 +313,7 @@ export function WeeklyDigestEmail({
           
           <div className="footer">
             <p>
-              You're receiving this because you have active watchers.<br />
+              You&apos;re receiving this because you have active watchers.<br />
               <a href="#" style={{ color: '#6b7280' }}>Manage your preferences</a> | 
               <a href="#" style={{ color: '#6b7280' }}> Unsubscribe</a>
             </p>

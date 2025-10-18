@@ -3,7 +3,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               <CardTitle className="text-xl">Something went wrong</CardTitle>
               <CardDescription>
-                We're sorry, but something unexpected happened. Please try again.
+                We&apos;re sorry, but something unexpected happened. Please try again.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

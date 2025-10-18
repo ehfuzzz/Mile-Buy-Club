@@ -7,10 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Server, 
-  Database, 
   Cpu, 
   HardDrive, 
-  Wifi, 
   CheckCircle, 
   AlertTriangle, 
   XCircle,

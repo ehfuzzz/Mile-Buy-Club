@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, ChevronRight } from 'lucide-react';
-import TripCard from '@/components/trip-board/TripCard';
+import { Plus } from 'lucide-react';
 import TripColumn from '@/components/trip-board/TripColumn';
 
 interface Trip {

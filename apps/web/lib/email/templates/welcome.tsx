@@ -16,7 +16,7 @@ interface WelcomeEmailProps {
   }>;
 }
 
-export function WelcomeEmail({ userName, userEmail, nextSteps, features }: WelcomeEmailProps) {
+export function WelcomeEmail({ userName, nextSteps, features }: WelcomeEmailProps) {
   return (
     <html>
       <head>
@@ -202,7 +202,7 @@ export function WelcomeEmail({ userName, userEmail, nextSteps, features }: Welco
           <div className="content">
             <div className="welcome-message">
               <h2>Hi {userName}!</h2>
-              <p>We're thrilled to have you join our community of savvy travelers. You're now part of an exclusive group that never pays full price for travel again!</p>
+              <p>We&apos;re thrilled to have you join our community of savvy travelers. You&apos;re now part of an exclusive group that never pays full price for travel again!</p>
             </div>
             
             <div className="features-grid">
@@ -216,7 +216,7 @@ export function WelcomeEmail({ userName, userEmail, nextSteps, features }: Welco
             </div>
             
             <div className="next-steps">
-              <h3>🚀 Let's Get You Started</h3>
+              <h3>🚀 Let&apos;s Get You Started</h3>
               {nextSteps.map((step, index) => (
                 <div key={index} className="step">
                   <div className="step-title">{step.title}</div>

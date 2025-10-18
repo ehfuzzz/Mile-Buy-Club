@@ -8,10 +8,7 @@ import {
   Settings, 
   Zap, 
   Shield, 
-  Clock, 
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw
+  CheckCircle
 } from 'lucide-react';
 
 export default function RateLimitsPage() {

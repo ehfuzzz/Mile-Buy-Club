@@ -16,7 +16,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Download, Calendar, TrendingUp } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const analyticsData = {
   dealsViewed: [

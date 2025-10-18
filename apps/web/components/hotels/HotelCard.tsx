@@ -22,7 +22,7 @@ interface HotelCardProps {
 
 export default function HotelCard({ hotel }: HotelCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">

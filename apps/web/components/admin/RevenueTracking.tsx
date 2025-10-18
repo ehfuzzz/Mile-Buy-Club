@@ -262,7 +262,7 @@ export function RevenueTracking() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {monthlyData.map((month, index) => (
+            {monthlyData.map((month, _index) => (
               <div key={month.month} className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 text-sm font-medium">{month.month}</div>
