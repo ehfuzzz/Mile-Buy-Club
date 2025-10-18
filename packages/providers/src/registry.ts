@@ -20,7 +20,7 @@ export class ProviderRegistry {
   private hotelProviders = new Map<ProviderName, HotelProvider>();
   private activityProviders = new Map<ProviderName, ActivityProvider>();
   private healthCheckStatus = new Map<ProviderName, ProviderHealthCheck>();
-  private healthCheckInterval: NodeJS.Timer | null = null;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
 
   registerFlightProvider(name: ProviderName, provider: FlightProvider): void {
     this.flightProviders.set(name, provider);

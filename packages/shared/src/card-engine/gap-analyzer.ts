@@ -1,5 +1,5 @@
 import { CreditCard, UserProfile, ProgramGap } from './types';
-import cardDatabase from './card-database.json';
+import cardDatabase from './card-database.data.json';
 
 export class GapAnalyzer {
   /**

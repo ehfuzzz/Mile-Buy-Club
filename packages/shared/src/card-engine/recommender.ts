@@ -1,7 +1,7 @@
 import { CreditCard, UserProfile, CardRecommendation } from './types';
 import { GapAnalyzer } from './gap-analyzer';
 import { Explainer } from './explainer';
-import cardDatabase from './card-database.json';
+import cardDatabase from './card-database.data.json';
 
 export class CardRecommender {
   /**
