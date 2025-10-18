@@ -45,7 +45,7 @@ export function generateBookingInstructions(
   
   if (programSteps.difficulty === 'difficult') {
     difficulty = 'difficult';
-  } else if (programSteps.difficulty === 'moderate' && difficulty !== 'difficult') {
+  } else if (programSteps.difficulty === 'moderate' && difficulty === 'easy') {
     difficulty = 'moderate';
   }
 

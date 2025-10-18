@@ -1,0 +1,2 @@
+# Keep schema.prisma in version control
+# But ignore migrations if using shadow database for testing
