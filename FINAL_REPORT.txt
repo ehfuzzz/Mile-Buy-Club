@@ -455,36 +455,55 @@ CODEX DELEGATION STATUS
 Codex has been provided with CODEX_START_HERE.md containing 4 independent batches
 to work in parallel with Haiku. All batches are non-blocking and can run concurrently.
 
-Batch A: PWA Setup (Independent)
+Batch A: PWA Setup (Independent, quick)
 Status: 🔄 Delegated to Codex
-Files to create:
-  • apps/web/app/manifest.ts (webmanifest metadata)
-  • apps/web/public/icons/icon-192.png, icon-512.png, apple-touch-icon.png
-  • apps/web/public/sw.js (service worker with cache strategy + offline fallback)
-  • Update apps/web/app/layout.tsx (add manifest link, theme-color meta)
-Acceptance: Lighthouse PWA checks pass; offline returns fallback page
+Tasks:
+  1) Create app manifest: apps/web/app/manifest.ts
+     - Include: name "Mile Buy Club", short_name "MBC", theme_color, background_color
+     - display "standalone", start_url "/", icons 192/512
+  2) Add icons: apps/web/public/icons/icon-192.png, icon-512.png, apple-touch-icon.png
+  3) Service Worker: apps/web/public/sw.js
+     - Cache-first for static, network-first for dynamic
+     - Offline fallback showing OfflineFallback page
+     - Background sync event handler stub
+  4) Wire in layout: apps/web/app/layout.tsx
+     - Add manifest link, theme-color meta, apple-touch-icon links
+Acceptance: Lighthouse PWA checks pass; offline returns fallback; no runtime errors
 
 Batch B: NextAuth Authentication (Independent)
 Status: 🔄 Delegated to Codex
-Files to create:
-  • apps/web/app/api/auth/[...nextauth]/route.ts (Google OAuth + Credentials, JWT callbacks)
-  • apps/web/lib/auth.ts (authOptions, getServerSession, requireAuth helpers)
-  • apps/web/middleware.ts (protect /dashboard/*, redirect to /login)
-Acceptance: /api/auth/signin renders; session has user.id & user.email; /dashboard redirects if not auth
+Tasks:
+  1) NextAuth route: apps/web/app/api/auth/[...nextauth]/route.ts
+     - Google OAuth (placeholder credentials)
+     - Credentials provider (email/password)
+     - JWT strategy with callbacks enriching token with id & email
+     - Session callback attaching user.id & user.email
+  2) Auth helpers: apps/web/lib/auth.ts
+     - Exports: authOptions, getServerSession, requireAuth
+  3) Middleware: apps/web/middleware.ts
+     - Protect /dashboard/*, redirect to /login if unauthenticated
+Acceptance: /api/auth/signin renders both providers; session has user.id & email; /dashboard redirects if not auth
 
 Batch C: Notifications Client SDK (Independent)
 Status: 🔄 Delegated to Codex
-Files to create:
-  • apps/web/lib/notifications/client.ts (requestPermission, subscribe/unsubscribe, unread count)
-  • apps/web/lib/notifications/api.ts (stubs for subscribe/unsubscribe/mark-read endpoints)
-  • apps/web/lib/notifications/types.ts (NotificationItem interface)
-Acceptance: Importable, no runtime errors, unit-testable, works with UI stubs
+Tasks:
+  1) Client SDK: apps/web/lib/notifications/client.ts
+     - Exports: requestPermission(), registerServiceWorker(), subscribeToPush(), unsubscribeFromPush(), getUnreadCount(), markAllRead()
+     - Store unread count locally; mock values for now
+  2) API client: apps/web/lib/notifications/api.ts
+     - Stubs: POST /api/notifications/subscribe, unsubscribe, mark-read
+  3) Types: apps/web/lib/notifications/types.ts
+     - NotificationItem interface: { id, title, body, createdAt, read }
+Acceptance: Importable with no runtime errors; unit-testable pure functions; works with placeholder UI
 
 Batch D: Deal Ranking Adapter (Independent)
 Status: 🔄 Delegated to Codex
-Files to create:
-  • apps/web/lib/ranking-preview.ts (computeUiScore deterministic function, score 0-100)
-Acceptance: Stable score by price/cpp, unit-testable, drop-in for UI badges
+Tasks:
+  1) Ranking adapter: apps/web/lib/ranking-preview.ts
+     - Export: computeUiScore(deal) → deterministic 0-100 score
+     - Inputs: { price, cpp, milesRequired, cabin, airline, createdAt }
+     - Docstring explaining scoring logic (e.g., lower price/higher cpp → higher score)
+Acceptance: Stable & monotonic score by price/cpp; unit-testable; drop-in for UI score badges
 
 Haiku (this agent) will work on parallel UI tasks:
   • PROMPT 7 (UI): Login/Register pages, AuthProvider, UserButton, ProtectedRoute
@@ -493,11 +512,12 @@ Haiku (this agent) will work on parallel UI tasks:
   • SONNET 5 (UI): Sort/filter controls, value score badge
   • SONNET 6 (UI): Preferences page, frequency selector, status banners
 
-Integration model:
-  • Codex provides typed stubs and utilities
+Integration & Handoff:
+  • Codex provides typed stubs and utilities (functions, not components)
   • Haiku builds UI against those stubs
-  • Swap to real implementations when complete
+  • UI imports from lib files; adapts to real implementations when available
   • Small PR per batch to minimize merge conflicts
   • GitHub repo: https://github.com/ehfuzzz/Mile-Buy-Club (main branch)
+  • Reference: See CODEX_START_HERE.md for copy-paste prompts per batch
 
 ================================================================================
