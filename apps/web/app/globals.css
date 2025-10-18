@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply border-slate-200;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-white text-slate-950 dark:bg-slate-950 dark:text-white;
+}
+
+@layer components {
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent;
+  }
+}
