@@ -90,7 +90,7 @@ export class RateLimiter {
         limit: Infinity,
         resetTime: Date.now(),
         windowMs: 0,
-        type: config?.type || type,
+        type: type,
         isLimited: false,
         timeUntilReset: 0
       };

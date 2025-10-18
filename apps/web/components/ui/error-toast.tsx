@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Toast, ToastProvider, ToastViewport } from '@/components/ui/toast';
+import { Toast, ToastViewport } from '@/components/ui/toast';
 import { AlertTriangle, X, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

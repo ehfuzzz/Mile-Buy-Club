@@ -35,7 +35,7 @@ export function PortfolioAnalysis({
     coverage: 75
   };
 
-  const data = userCards.length > 0 ? { userCards, gaps, totalValue, averageScore } : mockData;
+  const data = userCards.length > 0 ? { userCards, gaps, totalValue, averageScore, coverage: 75 } : mockData;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

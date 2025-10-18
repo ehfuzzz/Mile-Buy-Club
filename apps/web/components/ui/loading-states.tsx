@@ -234,7 +234,7 @@ export function useLoadingState(initialState = false) {
     setLoading(false);
   }, []);
 
-  const withLoading = React.useCallback(async <T>(
+  const withLoading = React.useCallback(async <T,>(
     asyncFn: () => Promise<T>
   ): Promise<T> => {
     try {
