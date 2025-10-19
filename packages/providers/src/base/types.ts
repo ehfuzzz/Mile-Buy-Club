@@ -10,9 +10,7 @@ export enum ProviderType {
 
 export enum ProviderName {
   AMADEUS = 'amadeus',
-  KIWI = 'kiwi',
   SEATS_AERO = 'seats_aero',
-  POINT_ME = 'point_me',
   BOOKING = 'booking',
   EXPEDIA = 'expedia',
   VIATOR = 'viator',

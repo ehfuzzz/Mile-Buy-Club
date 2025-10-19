@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Deal, Prisma, Watcher } from '@prisma/client';
 import {
   type Flight,
@@ -7,6 +7,7 @@ import {
   type FlightSegment,
 } from '@mile/providers';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { SeatsAeroPartnerDeal, SeatsAeroPartnerService } from './seats-aero-partner.service';
 
 export interface DealPricingOptionView {
   type: FlightPricingOptionType;
@@ -76,7 +77,12 @@ export interface DealsListResponse {
 
 @Injectable()
 export class DealsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(DealsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly seatsAeroPartnerService: SeatsAeroPartnerService,
+  ) {}
 
   async resolveUserId(userId?: string): Promise<string> {
     if (userId) {
@@ -99,29 +105,26 @@ export class DealsService {
   }
 
   async listDeals(userId?: string, limit = 100): Promise<DealsListResponse> {
-    const resolvedUserId = await this.resolveUserId(userId);
-    const records = await this.prisma.deal.findMany({
-      where: { userId: resolvedUserId, status: 'active' },
-      orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
-      take: limit,
-      include: {
-        watcher: {
-          select: { id: true, name: true },
+    const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
+
+    try {
+      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({ take });
+      const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
+      const watcherCount =
+        mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;
+
+      return {
+        deals: mappedDeals,
+        meta: {
+          total: mappedDeals.length,
+          userId: userId ?? 'seats-aero',
+          watcherCount,
         },
-      },
-    });
-
-    const deals = records.map((deal) => this.toDealView(deal));
-    const watcherCount = new Set(deals.map((deal) => deal.watcherId)).size;
-
-    return {
-      deals,
-      meta: {
-        total: deals.length,
-        userId: resolvedUserId,
-        watcherCount,
-      },
-    };
+      };
+    } catch (error) {
+      this.logger.error('Falling back to stored deals after SeatsAero error', error as Error);
+      return this.listDealsFromDatabase(userId, take);
+    }
   }
 
   async listDealsForWatcher(
@@ -151,6 +154,237 @@ export class DealsService {
         watcherCount: deals.length > 0 ? 1 : 0,
       },
     };
+  }
+
+  private async listDealsFromDatabase(userId: string | undefined, limit = 100): Promise<DealsListResponse> {
+    const resolvedUserId = await this.resolveUserId(userId);
+    const records = await this.prisma.deal.findMany({
+      where: { userId: resolvedUserId, status: 'active' },
+      orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+      include: {
+        watcher: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    const deals = records.map((deal) => this.toDealView(deal));
+    const watcherCount = new Set(deals.map((deal) => deal.watcherId)).size;
+
+    return {
+      deals,
+      meta: {
+        total: deals.length,
+        userId: resolvedUserId,
+        watcherCount,
+      },
+    };
+  }
+
+  private mapPartnerDeal(deal: SeatsAeroPartnerDeal): DealView {
+    const id = deal.id ?? this.buildDealId(deal);
+    const program = deal.program ?? deal.loyaltyProgram ?? 'Seats.aero';
+    const provider = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
+    const departure = deal.departure ?? deal.segments?.[0]?.departure ?? null;
+    const arrival = deal.arrival ?? deal.segments?.[deal.segments.length - 1]?.arrival ?? null;
+    const miles = this.resolveMiles(deal);
+    const cashDue = this.resolveCashDue(deal);
+    const currency = deal.currency ?? deal.taxesCurrency ?? 'USD';
+    const availability = this.resolveAvailability(deal);
+    const cpp = this.computeCpp(miles, cashDue);
+    const score = this.computeScore(cpp, availability);
+    const updatedAt = deal.updatedAt ?? new Date().toISOString();
+    const segments = this.mapSegments(deal.segments, deal.cabin ?? null);
+    const firstSegment = segments && segments.length > 0 ? segments[0] : undefined;
+    const lastSegment = segments && segments.length > 0 ? segments[segments.length - 1] : undefined;
+    const cabinSource = deal.cabin ?? firstSegment?.cabin ?? null;
+    const normalizedCabin = typeof cabinSource === 'string' ? cabinSource.toLowerCase() : cabinSource;
+
+    return {
+      id,
+      watcherId: deal.watcherId ?? 'seats-aero-live',
+      watcherName: deal.watcherName ?? program,
+      provider: 'SEATS_AERO',
+      airline: deal.airline ?? deal.carrier ?? firstSegment?.marketingCarrier ?? null,
+      cabin: normalizedCabin,
+      route: {
+        origin: deal.origin ?? firstSegment?.origin ?? null,
+        destination: deal.destination ?? lastSegment?.destination ?? null,
+        departure,
+        arrival,
+        durationMinutes: this.computeDurationMinutes(departure, arrival),
+        stops: this.computeStops(segments),
+        aircraft: this.resolveAircraft(segments),
+      },
+      availability,
+      score,
+      cpp,
+      value: null,
+      taxes: cashDue ?? null,
+      pricing: {
+        primaryType: 'award',
+        price: cashDue ?? 0,
+        currency,
+        milesRequired: miles,
+        cashPrice: cashDue,
+        cashCurrency: currency,
+        pointsCashPrice: null,
+        pointsCashCurrency: null,
+        pointsCashMiles: null,
+        options: [
+          {
+            type: 'award',
+            miles: miles ?? undefined,
+            cashAmount: cashDue ?? undefined,
+            cashCurrency: currency,
+            provider,
+            bookingUrl: deal.bookingUrl,
+            description: program ? `Book via ${program}` : undefined,
+          },
+        ],
+      },
+      bookingUrl: deal.bookingUrl ?? null,
+      status: 'active',
+      createdAt: deal.createdAt ?? updatedAt,
+      updatedAt,
+      expiresAt: deal.expiresAt ?? null,
+      scoreBreakdown: {
+        cpp,
+        availability,
+      },
+    };
+  }
+
+  private buildDealId(deal: SeatsAeroPartnerDeal): string {
+    const origin = deal.origin ?? deal.segments?.[0]?.origin ?? 'unknown';
+    const destination = deal.destination ?? deal.segments?.[deal.segments.length - 1]?.destination ?? 'unknown';
+    const departure = (deal.departure ?? deal.segments?.[0]?.departure ?? '').replace(/[^0-9A-Za-z]/g, '');
+    const program = (deal.program ?? deal.loyaltyProgram ?? 'seats').replace(/\s+/g, '-').toLowerCase();
+    return `${program}-${origin}-${destination}-${departure || Date.now()}`;
+  }
+
+  private resolveMiles(deal: SeatsAeroPartnerDeal): number | null {
+    if (typeof deal.miles === 'number') {
+      return Math.max(0, Math.round(deal.miles));
+    }
+
+    if (typeof deal.points === 'number') {
+      return Math.max(0, Math.round(deal.points));
+    }
+
+    return null;
+  }
+
+  private resolveCashDue(deal: SeatsAeroPartnerDeal): number | null {
+    const totals = [deal.totalFees, deal.totalTaxes].filter(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value),
+    );
+
+    if (totals.length > 0) {
+      const sum = totals.reduce((acc, value) => acc + value, 0);
+      return Math.round(sum * 100) / 100;
+    }
+
+    const partials = [deal.fees, deal.taxes].filter(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value),
+    );
+
+    if (partials.length === 0) {
+      return null;
+    }
+
+    const sum = partials.reduce((acc, value) => acc + value, 0);
+    return Math.round(sum * 100) / 100;
+  }
+
+  private resolveAvailability(deal: SeatsAeroPartnerDeal): number | null {
+    const availability =
+      typeof deal.availability === 'number'
+        ? deal.availability
+        : typeof deal.seatsAvailable === 'number'
+        ? deal.seatsAvailable
+        : typeof deal.seats === 'number'
+        ? deal.seats
+        : null;
+
+    if (availability === null) {
+      return null;
+    }
+
+    return Math.max(0, Math.floor(availability));
+  }
+
+  private computeCpp(miles: number | null, cashDue: number | null): number | null {
+    if (!miles || miles <= 0 || cashDue === null || cashDue <= 0) {
+      return null;
+    }
+
+    const cpp = (cashDue / miles) * 100;
+    return Math.round(cpp * 100) / 100;
+  }
+
+  private computeScore(cpp: number | null, availability: number | null): number {
+    const base = cpp === null ? 70 : Math.max(10, Math.min(95, Math.round((2 - Math.min(cpp, 2)) * 45 + 50)));
+    const availabilityBoost = availability && availability > 2 ? 5 : 0;
+    return Math.max(10, Math.min(100, base + availabilityBoost));
+  }
+
+  private mapSegments(
+    segments: SeatsAeroPartnerSegment[] | undefined,
+    defaultCabin: string | null,
+  ): FlightSegment[] | undefined {
+    if (!segments || segments.length === 0) {
+      return undefined;
+    }
+
+    return segments.map((segment) => ({
+      marketingCarrier: segment.marketingCarrier ?? segment.operatingCarrier ?? segment.flightNumber ?? 'UNK',
+      operatingCarrier: segment.operatingCarrier,
+      flightNumber: segment.flightNumber,
+      origin: segment.origin ?? '',
+      destination: segment.destination ?? '',
+      departureTime: segment.departure ?? segment.departureTime ?? '',
+      arrivalTime: segment.arrival ?? segment.arrivalTime ?? '',
+      cabin: (segment.cabin ?? defaultCabin ?? 'economy') as FlightSegment['cabin'],
+      fareClass: segment.fareClass ?? null,
+      aircraft: segment.aircraft ?? undefined,
+    }));
+  }
+
+  private computeDurationMinutes(departure: string | null, arrival: string | null): number | null {
+    if (!departure || !arrival) {
+      return null;
+    }
+
+    const start = new Date(departure).getTime();
+    const end = new Date(arrival).getTime();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      return null;
+    }
+
+    return Math.round((end - start) / 60000);
+  }
+
+  private computeStops(segments?: FlightSegment[]): number | null {
+    if (!segments || segments.length === 0) {
+      return null;
+    }
+
+    return Math.max(0, segments.length - 1);
+  }
+
+  private resolveAircraft(segments?: FlightSegment[]): string[] | null {
+    if (!segments) {
+      return null;
+    }
+
+    const aircraft = segments
+      .map((segment) => segment.aircraft)
+      .filter((value): value is string => Boolean(value));
+
+    return aircraft.length > 0 ? Array.from(new Set(aircraft)) : null;
   }
 
   toDealView(

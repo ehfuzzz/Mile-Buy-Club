@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 const THEME_COLOR = '#0f172a';
@@ -33,9 +34,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <div className="flex min-h-screen flex-col">
-            <main className="flex-1">{children}</main>
-          </div>
+          <QueryProvider>
+            <div className="flex min-h-screen flex-col">
+              <main className="flex-1">{children}</main>
+            </div>
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>

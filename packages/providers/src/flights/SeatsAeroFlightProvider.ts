@@ -21,6 +21,9 @@ interface SeatsAeroAvailabilitySegment {
   arrival: string;
   cabin?: string;
   fareClass?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  aircraft?: string;
 }
 
 interface SeatsAeroAvailability {
@@ -30,14 +33,20 @@ interface SeatsAeroAvailability {
   departure: string;
   arrival: string;
   airline?: string;
+  carrier?: string;
   flightNumber?: string;
   cabin?: string;
   miles?: number;
   seatsAvailable?: number;
+  availability?: number;
+  seats?: number;
   bookingUrl?: string;
   currency?: string;
   taxes?: number;
   fees?: number;
+  totalTaxes?: number;
+  totalFees?: number;
+  taxesCurrency?: string;
   program?: string;
   segments?: SeatsAeroAvailabilitySegment[];
 }
@@ -58,23 +67,23 @@ export class SeatsAeroFlightProvider extends FlightProvider {
     }
 
     this.http = axios.create({
-      baseURL: seatsConfig.baseUrl ?? 'https://api.seats.aero',
+      baseURL: (seatsConfig.baseUrl ?? 'https://seats.aero/partnerapi').replace(/\/$/, ''),
       timeout: seatsConfig.timeout ?? 20000,
       headers: {
-        'x-api-key': seatsConfig.apiKey,
-        'content-type': 'application/json',
+        'Partner-Authorization': seatsConfig.apiKey,
+        Accept: 'application/json',
       },
     });
   }
 
   protected async executeHealthCheck(): Promise<void> {
-    await this.http.get('/v1/status');
+    await this.http.get('/search', { params: { take: 1 } });
   }
 
   protected async executeSearch(params: FlightSearchParams): Promise<Flight[]> {
     try {
-      const response = await this.http.get<{ availability: SeatsAeroAvailability[] }>(
-        '/v1/award/search',
+      const response = await this.http.get<{ availability?: SeatsAeroAvailability[]; data?: SeatsAeroAvailability[]; results?: SeatsAeroAvailability[] }>(
+        '/search',
         {
           params: {
             origin: params.origin,
@@ -84,11 +93,12 @@ export class SeatsAeroFlightProvider extends FlightProvider {
             cabin: params.cabin,
             program: this.seatsConfig.program,
             passengers: params.passengers?.adults ?? 1,
+            take: 50,
           },
         }
       );
 
-      const availability = response.data?.availability ?? [];
+      const availability = this.extractAvailability(response.data);
       if (!Array.isArray(availability)) {
         throw new ProviderError('INVALID_RESPONSE', 'SeatsAero returned an unexpected payload');
       }
@@ -99,13 +109,28 @@ export class SeatsAeroFlightProvider extends FlightProvider {
     }
   }
 
+  private extractAvailability(
+    payload: { availability?: SeatsAeroAvailability[]; data?: SeatsAeroAvailability[]; results?: SeatsAeroAvailability[] },
+  ): SeatsAeroAvailability[] {
+    if (Array.isArray(payload.availability)) {
+      return payload.availability;
+    }
+    if (Array.isArray(payload.data)) {
+      return payload.data;
+    }
+    if (Array.isArray(payload.results)) {
+      return payload.results;
+    }
+    return [];
+  }
+
   private mapAvailability(item: SeatsAeroAvailability, params: FlightSearchParams): Flight {
     const id =
       item.id ||
       `${item.program ?? 'seats_aero'}-${item.origin}-${item.destination}-${item.departure}-${item.flightNumber ?? 'unknown'}`;
 
-    const currency = item.currency ?? 'USD';
-    const cashDue = item.taxes ?? item.fees ?? 0;
+    const currency = item.currency ?? item.taxesCurrency ?? 'USD';
+    const cashDue = this.resolveCashDue(item);
 
     const pricingOptions: FlightPricingOption[] = [];
 
@@ -113,14 +138,14 @@ export class SeatsAeroFlightProvider extends FlightProvider {
       pricingOptions.push({
         type: 'award',
         miles: item.miles,
-        cashAmount: cashDue,
+        cashAmount: cashDue ?? 0,
         cashCurrency: currency,
         provider: this.config.name,
         bookingUrl: item.bookingUrl,
         description: item.program ? `Book via ${item.program}` : undefined,
       });
 
-      const pointsPlusCash = this.estimatePointsPlusCashOption(item.miles, cashDue, currency);
+      const pointsPlusCash = this.estimatePointsPlusCashOption(item.miles, cashDue ?? 0, currency);
       if (pointsPlusCash) {
         pricingOptions.push(pointsPlusCash);
       }
@@ -131,35 +156,69 @@ export class SeatsAeroFlightProvider extends FlightProvider {
       provider: this.config.name,
       origin: item.origin ?? params.origin,
       destination: item.destination ?? params.destination,
-      departureTime: item.departure,
-      arrivalTime: item.arrival,
-      price: cashDue,
+      departureTime: item.departure ?? item.departureTime,
+      arrivalTime: item.arrival ?? item.arrivalTime,
+      price: cashDue ?? 0,
       currency,
-      airline: item.airline,
+      airline: item.airline ?? item.carrier,
       flightNumber: item.flightNumber,
       cabin: (item.cabin ?? params.cabin) as Flight['cabin'],
       milesRequired: item.miles,
       bookingUrl: item.bookingUrl,
-      availability: item.seatsAvailable,
-      taxes: item.taxes,
-      fees: item.fees,
+      availability: item.seatsAvailable ?? item.availability ?? item.seats,
+      taxes: this.resolveTaxes(item),
+      fees: this.resolveFees(item),
       segments: item.segments?.map((segment) => ({
         marketingCarrier: segment.marketingCarrier,
         operatingCarrier: segment.operatingCarrier,
         flightNumber: segment.flightNumber,
         origin: segment.origin,
         destination: segment.destination,
-        departureTime: segment.departure,
-        arrivalTime: segment.arrival,
+        departureTime: segment.departure ?? segment.departureTime,
+        arrivalTime: segment.arrival ?? segment.arrivalTime,
         cabin: segment.cabin as Flight['cabin'],
         fareClass: segment.fareClass,
       })),
       pricingOptions: pricingOptions.length > 0 ? pricingOptions : undefined,
-      pointsCashPrice: cashDue || undefined,
+      pointsCashPrice: cashDue ?? undefined,
       pointsCashCurrency: pricingOptions.length > 0 ? currency : undefined,
       pointsCashMiles:
         pricingOptions.find((option) => option.type === 'points_plus_cash')?.miles ?? undefined,
     };
+  }
+
+  private resolveCashDue(item: SeatsAeroAvailability): number | null {
+    const totals = [item.totalFees, item.totalTaxes].filter((value): value is number => typeof value === 'number');
+    if (totals.length > 0) {
+      const total = totals.reduce((sum, value) => sum + value, 0);
+      return Math.round(total * 100) / 100;
+    }
+    const partials = [item.fees, item.taxes].filter((value): value is number => typeof value === 'number');
+    if (partials.length === 0) {
+      return null;
+    }
+    const total = partials.reduce((sum, value) => sum + value, 0);
+    return Math.round(total * 100) / 100;
+  }
+
+  private resolveTaxes(item: SeatsAeroAvailability): number | undefined {
+    if (typeof item.totalTaxes === 'number') {
+      return item.totalTaxes;
+    }
+    if (typeof item.taxes === 'number') {
+      return item.taxes;
+    }
+    return undefined;
+  }
+
+  private resolveFees(item: SeatsAeroAvailability): number | undefined {
+    if (typeof item.totalFees === 'number') {
+      return item.totalFees;
+    }
+    if (typeof item.fees === 'number') {
+      return item.fees;
+    }
+    return undefined;
   }
 
   private estimatePointsPlusCashOption(
