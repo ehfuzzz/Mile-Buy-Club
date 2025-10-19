@@ -7,50 +7,43 @@ export class Explainer {
   static generateReasons(card: CreditCard, gaps: any[], balance: any): string[] {
     const reasons: string[] = [];
 
-    // Gap filling reasons
-    card.programs.forEach((program) => {
-      const gap = gaps.find((g) => g.program === program);
+    const coverage = new Set<string>([card.rewardsProgram, ...(card.programs ?? []), ...card.transferPartners]);
+    coverage.forEach((program) => {
+      const gap = gaps.find((g: any) => g.program === program);
       if (gap) {
         reasons.push(`Fills gap in ${program} coverage`);
       }
     });
 
-    // Transfer partner reasons
     if (card.transferPartners.length > 5) {
       reasons.push(
         `Flexible: transfers to ${card.transferPartners.length}+ airline/hotel partners`
       );
     }
 
-    // Bonus value reason
-    if (card.signupBonus.value >= 800) {
+    const welcomeValue = card.welcomeOffer?.estimatedValueUsd ?? card.signupBonus.value;
+    if (welcomeValue && welcomeValue >= 600) {
       reasons.push(
-        `High signup bonus: ${card.signupBonus.points.toLocaleString()} points worth $${card.signupBonus.value}`
+        `Welcome offer worth ~$${Math.round(welcomeValue)} when requirements are met`
       );
     }
 
-    // Benefits reasons
-    if (card.benefits.some((b) => b.toLowerCase().includes('lounge'))) {
+    if (card.credits?.some((credit) => credit.type === 'AIRLINE_INCIDENTAL')) {
+      reasons.push(`Includes airline incidental credits for seat fees & bags`);
+    }
+
+    if (card.credits?.some((credit) => credit.type === 'PORTAL_TRAVEL_CREDIT')) {
+      reasons.push(`Portal travel credit helps offset the annual fee`);
+    }
+
+    if (card.perks?.some((perk) => perk.type === 'LOUNGE_ACCESS')) {
       reasons.push(`Includes lounge access benefits`);
     }
 
-    if (card.benefits.some((b) => b.toLowerCase().includes('credit'))) {
-      reasons.push(`Annual credits help offset the fee`);
-    }
-
-    // No fee reason
     if (card.annualFee === 0) {
       reasons.push(`No annual fee - great for everyday spending`);
     }
 
-    // CPP value reason
-    if (card.valuationCPP >= 1.5) {
-      reasons.push(
-        `High point value: ${card.valuationCPP}¢ per point when transferred`
-      );
-    }
-
-    // Portfolio balance reasons
     if (!balance.hasNoFeeCard && card.annualFee === 0) {
       reasons.push(`Adds a no-fee option to your portfolio`);
     }
@@ -59,7 +52,10 @@ export class Explainer {
       reasons.push(`Brings flexible transfer options to your arsenal`);
     }
 
-    // Limit to top 4 reasons
+    if (card.valuationCPP >= 1.5) {
+      reasons.push(`High point value at ${card.valuationCPP}¢ per point`);
+    }
+
     return reasons.slice(0, 4);
   }
 
@@ -67,10 +63,9 @@ export class Explainer {
    * Generate "why this card" explanation
    */
   static generateExplanation(recommendation: any): string {
-    const { card, gapsFilled, estimatedAnnualValue, effectiveAnnualFee } =
-      recommendation;
+    const { card, gapsFilled, estimatedAnnualValue, effectiveAnnualFee } = recommendation;
 
-    let explanation = `The ${card.name} is recommended because:\n\n`;
+    let explanation = `The ${card.productName ?? card.name} is recommended because:\n\n`;
 
     if (gapsFilled.length > 0) {
       explanation += `It fills gaps in: ${gapsFilled.join(', ')}.\n\n`;

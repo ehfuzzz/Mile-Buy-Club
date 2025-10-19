@@ -143,52 +143,98 @@ model UserLoyaltyProgram {
 }
 
 model CreditCard {
-  id            String    @id @default(cuid())
-  name          String
-  issuer        String
-  network       String    // visa, mastercard, amex, discover
-  category      String    // travel, cashback, premium, business
-  
-  // Benefits
-  signupBonus   String?
-  annualFee     Int?      // in cents
-  foreignFeeWaived Boolean?
-  
-  // CPP (cents per point)
-  flightCpp     Float?
-  hotelCpp      Float?
-  
-  // Relations
-  userCards     UserCreditCard[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  cardId          String   @id
+  issuer          String
+  network         String
+  productName     String
+  annualFeeUsd    Int
+  rewardsProgram  String
+  pointValueCents Float?
+  welcomeOffer    Json?
+  metadata        Json?
+  perks           Json?
+  protections     Json?
+  sourceOfTruthUrl String?
+  lastVerifiedUtc DateTime?
+
+  earnRates        CardEarnRate[]
+  credits          CardCreditDefinition[]
+  transferPartners CardTransferPartner[]
+  userCards        UserCreditCard[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([issuer])
   @@index([network])
+}
+
+model CardEarnRate {
+  id        String   @id @default(cuid())
+  cardId    String
+  category  String
+  rateX     Float
+  card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+}
+
+model CardCreditDefinition {
+  id                 String   @id @default(cuid())
+  creditId           String
+  cardId             String
+  title              String
+  type               String
+  amountCurrency     String
+  amountValue        Float
+  frequencyUnit      String
+  frequencyResetRule String
+  frequencyNYears    Int?
+  eligibility        Json?
+  recognition        Json?
+  card               CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([cardId])
+  @@index([creditId])
+}
+
+model CardTransferPartner {
+  id        String   @id @default(cuid())
+  cardId    String
+  partner   String
+  card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+  @@index([partner])
 }
 
 model UserCreditCard {
   id            String    @id @default(cuid())
   userId        String
   cardId        String
-  
+
   // Account details
   lastFourDigits String?
   expiryMonth   Int?
   expiryYear    Int?
-  
+
   // Status
   isActive      Boolean   @default(true)
   isPrimary     Boolean   @default(false)
-  
+
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  
+  card          CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   @@unique([userId, cardId])
   @@index([userId])
   @@index([cardId])

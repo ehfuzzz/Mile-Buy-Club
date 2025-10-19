@@ -1,257 +1,1684 @@
 {
   "cards": [
     {
-      "id": "chase-sapphire-reserve",
-      "name": "Chase Sapphire Reserve",
+      "id": "chase_sapphire_preferred",
+      "cardId": "chase_sapphire_preferred",
+      "card_id": "chase_sapphire_preferred",
       "issuer": "Chase",
       "network": "Visa",
+      "productName": "Chase Sapphire Preferred\u00ae",
+      "annualFee": 95,
+      "annualFeeUsd": 95,
+      "rewardsProgram": "Chase Ultimate Rewards",
+      "programs": [
+        "Chase Ultimate Rewards"
+      ],
+      "pointValueCents": 1.5,
+      "valuationCPP": 1.5,
+      "earn": [
+        {
+          "category": "travel_portal",
+          "rateX": 5
+        },
+        {
+          "category": "dining",
+          "rateX": 3
+        },
+        {
+          "category": "online_groceries",
+          "rateX": 3
+        },
+        {
+          "category": "streaming",
+          "rateX": 3
+        },
+        {
+          "category": "travel_other",
+          "rateX": 2
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "travel_portal",
+          "rate": 5
+        },
+        {
+          "category": "dining",
+          "rate": 3
+        },
+        {
+          "category": "online_groceries",
+          "rate": 3
+        },
+        {
+          "category": "streaming",
+          "rate": 3
+        },
+        {
+          "category": "travel_other",
+          "rate": 2
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [
+        "United MileagePlus",
+        "Southwest Rapid Rewards",
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Iberia Plus",
+        "Virgin Atlantic Flying Club",
+        "Singapore KrisFlyer",
+        "World of Hyatt",
+        "Marriott Bonvoy",
+        "IHG One Rewards"
+      ],
+      "credits": [
+        {
+          "creditId": "csp_hotel_portal_annual_50",
+          "title": "$50 Chase Travel Hotel Credit",
+          "type": "HOTEL_PORTAL_BOOKING",
+          "amount": {
+            "currency": "USD",
+            "value": 50
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "portal": "CHASE_TRAVEL",
+            "minNights": 1,
+            "notes": "Automatically applied to the first hotel booking made through Chase Travel each cardmember year"
+          },
+          "recognition": {
+            "matchOn": [
+              "portal_booking_id"
+            ],
+            "postingLagDays": 1
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "PRIMARY_CAR_RENTAL_CDW"
+        },
+        {
+          "type": "TRIP_DELAY_REIMBURSEMENT",
+          "hoursThreshold": 12,
+          "maxUsd": 500
+        },
+        {
+          "type": "TRAVEL_INSURANCE_TOOLKIT"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_DELAY",
+          "maxUsd": 500,
+          "hoursThreshold": 12
+        },
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 10000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 60000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 750
+      },
+      "signupBonus": {
+        "points": 60000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 750
+      },
+      "benefits": [
+        "$50 Chase Travel hotel credit",
+        "5x points on portal travel bookings",
+        "Primary rental car coverage",
+        "Strong travel and purchase protections"
+      ],
+      "bestFor": [
+        "flexible-points",
+        "mid-tier-travel",
+        "hotel-credit"
+      ],
+      "sourceOfTruthUrl": "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "metadata": {
+        "positioning": [
+          "core travel",
+          "mid-tier"
+        ]
+      },
+      "name": "Chase Sapphire Preferred\u00ae"
+    },
+    {
+      "id": "chase_sapphire_reserve",
+      "cardId": "chase_sapphire_reserve",
+      "card_id": "chase_sapphire_reserve",
+      "issuer": "Chase",
+      "network": "Visa",
+      "productName": "Chase Sapphire Reserve\u00ae",
       "annualFee": 550,
-      "programs": ["Chase Ultimate Rewards"],
+      "annualFeeUsd": 550,
+      "rewardsProgram": "Chase Ultimate Rewards",
+      "programs": [
+        "Chase Ultimate Rewards"
+      ],
+      "pointValueCents": 1.5,
+      "valuationCPP": 1.5,
+      "earn": [
+        {
+          "category": "travel_other",
+          "rateX": 3
+        },
+        {
+          "category": "dining",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "travel_other",
+          "rate": 3
+        },
+        {
+          "category": "dining",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [
+        "United MileagePlus",
+        "Southwest Rapid Rewards",
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Iberia Plus",
+        "Virgin Atlantic Flying Club",
+        "Singapore KrisFlyer",
+        "World of Hyatt",
+        "Marriott Bonvoy",
+        "IHG One Rewards"
+      ],
+      "credits": [
+        {
+          "creditId": "csr_travel_annual_300",
+          "title": "$300 Travel Credit",
+          "type": "GENERIC_TRAVEL",
+          "amount": {
+            "currency": "USD",
+            "value": 300
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "mccAllow": [
+              "TRAVEL_ALL"
+            ],
+            "notes": "Automatically erases the first $300 in travel purchases each cardmember year"
+          },
+          "recognition": {
+            "matchOn": [
+              "mcc"
+            ],
+            "postingLagDays": 1
+          }
+        },
+        {
+          "creditId": "csr_ge_precheck",
+          "title": "Global Entry or TSA PreCheck Fee Credit",
+          "type": "TRUSTED_TRAVELER_CREDIT",
+          "amount": {
+            "currency": "USD",
+            "value": 100
+          },
+          "frequency": {
+            "unit": "EVERY_N_YEARS",
+            "resetRule": "CARDMEMBER_YEAR",
+            "nYears": 4
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "U.S. CBP",
+              "TSA",
+              "CLEAR"
+            ],
+            "notes": "Automatically reimburses once every four years"
+          },
+          "recognition": {
+            "matchOn": [
+              "merchant_name"
+            ],
+            "postingLagDays": 2
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "LOUNGE_ACCESS",
+          "network": [
+            "Priority Pass (incl. restaurants)"
+          ]
+        },
+        {
+          "type": "PRIMARY_CAR_RENTAL_CDW"
+        },
+        {
+          "type": "CHASE_LUXURY_HOTELS_COLLECTION"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_DELAY",
+          "maxUsd": 500,
+          "hoursThreshold": 6
+        },
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 10000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 60000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 900
+      },
       "signupBonus": {
         "points": 60000,
         "requirement": "Spend $4,000 in 3 months",
         "value": 900
       },
-      "earningRates": [
-        { "category": "travel", "rate": 3 },
-        { "category": "dining", "rate": 3 },
-        { "category": "other", "rate": 1 }
-      ],
       "benefits": [
-        "$300 annual travel credit",
-        "Priority Pass lounge access",
-        "Global Entry/TSA PreCheck credit",
-        "No foreign transaction fees",
-        "Primary rental car insurance"
+        "$300 automatic travel credit",
+        "Priority Pass lounge access (restaurants included)",
+        "Strong trip protections",
+        "50% bonus value through Chase Travel"
       ],
-      "transferPartners": [
-        "United MileagePlus",
-        "Southwest Rapid Rewards",
-        "World of Hyatt",
-        "Marriott Bonvoy",
-        "Virgin Atlantic"
+      "bestFor": [
+        "premium-travel",
+        "lounge-access",
+        "airline-travel"
       ],
-      "valuationCPP": 1.5,
-      "bestFor": ["travel", "premium", "lounge-access"]
+      "sourceOfTruthUrl": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "metadata": {
+        "positioning": [
+          "premium travel"
+        ]
+      },
+      "name": "Chase Sapphire Reserve\u00ae"
     },
     {
-      "id": "amex-platinum",
-      "name": "American Express Platinum",
+      "id": "capital_one_venture_x",
+      "cardId": "capital_one_venture_x",
+      "card_id": "capital_one_venture_x",
+      "issuer": "Capital One",
+      "network": "Visa",
+      "productName": "Capital One Venture X",
+      "annualFee": 395,
+      "annualFeeUsd": 395,
+      "rewardsProgram": "Capital One Miles",
+      "programs": [
+        "Capital One Miles"
+      ],
+      "pointValueCents": 1.0,
+      "valuationCPP": 1.0,
+      "earn": [
+        {
+          "category": "travel_portal_hotels_cars",
+          "rateX": 10
+        },
+        {
+          "category": "travel_portal_flights",
+          "rateX": 5
+        },
+        {
+          "category": "other",
+          "rateX": 2
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "travel_portal_hotels_cars",
+          "rate": 10
+        },
+        {
+          "category": "travel_portal_flights",
+          "rate": 5
+        },
+        {
+          "category": "other",
+          "rate": 2
+        }
+      ],
+      "transferPartners": [
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Emirates Skywards",
+        "Etihad Guest",
+        "Qantas Frequent Flyer",
+        "Qatar Privilege Club",
+        "Singapore KrisFlyer",
+        "Turkish Miles&Smiles",
+        "Avianca LifeMiles",
+        "TAP Miles&Go",
+        "Virgin Red",
+        "Aeromexico Club Premier",
+        "EVA Infinity MileageLands",
+        "Choice Privileges",
+        "Wyndham Rewards",
+        "Accor Live Limitless"
+      ],
+      "credits": [
+        {
+          "creditId": "c1x_travel_portal_annual_300",
+          "title": "$300 Capital One Travel Credit",
+          "type": "PORTAL_TRAVEL_CREDIT",
+          "amount": {
+            "currency": "USD",
+            "value": 300
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "portal": "CAPITAL_ONE_TRAVEL",
+            "notes": "Credit appears after eligible bookings post"
+          },
+          "recognition": {
+            "matchOn": [
+              "portal_booking_id"
+            ],
+            "postingLagDays": 3
+          }
+        },
+        {
+          "creditId": "c1x_anniversary_points",
+          "title": "10,000 Anniversary Miles",
+          "type": "ANNIVERSARY_POINTS",
+          "amount": {
+            "currency": "POINTS",
+            "value": 10000
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "LOUNGE_ACCESS",
+          "network": [
+            "Capital One Lounges",
+            "Priority Pass"
+          ]
+        },
+        {
+          "type": "HERTZ_STATUS",
+          "tier": "President's Circle"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 2000
+        },
+        {
+          "type": "CELL_PHONE_PROTECTION",
+          "maxUsd": 800
+        }
+      ],
+      "welcomeOffer": {
+        "points": 75000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 750
+      },
+      "signupBonus": {
+        "points": 75000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 750
+      },
+      "benefits": [
+        "$300 Capital One Travel credit",
+        "10,000 anniversary miles",
+        "Unlimited Priority Pass & Capital One lounge access",
+        "Travel & cell phone protections"
+      ],
+      "bestFor": [
+        "premium-travel",
+        "flexible-points",
+        "family-travel"
+      ],
+      "sourceOfTruthUrl": "https://www.capitalone.com/credit-cards/venture-x/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "metadata": {
+        "positioning": [
+          "premium travel",
+          "lounge access"
+        ]
+      },
+      "name": "Capital One Venture X"
+    },
+    {
+      "id": "capital_one_venture",
+      "cardId": "capital_one_venture",
+      "card_id": "capital_one_venture",
+      "issuer": "Capital One",
+      "network": "Visa",
+      "productName": "Capital One Venture",
+      "annualFee": 95,
+      "annualFeeUsd": 95,
+      "rewardsProgram": "Capital One Miles",
+      "programs": [
+        "Capital One Miles"
+      ],
+      "pointValueCents": 1.0,
+      "valuationCPP": 1.0,
+      "earn": [
+        {
+          "category": "other",
+          "rateX": 2
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "other",
+          "rate": 2
+        }
+      ],
+      "transferPartners": [
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Emirates Skywards",
+        "Etihad Guest",
+        "Qantas Frequent Flyer",
+        "Singapore KrisFlyer",
+        "Turkish Miles&Smiles",
+        "Virgin Red",
+        "Choice Privileges",
+        "Wyndham Rewards"
+      ],
+      "credits": [],
+      "perks": [
+        {
+          "type": "GLOBAL_ENTRY_CREDIT",
+          "amount": 100,
+          "frequency": "EVERY_4_YEARS"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRAVEL_ACCIDENT_INSURANCE"
+        }
+      ],
+      "welcomeOffer": {
+        "points": 75000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 750
+      },
+      "signupBonus": {
+        "points": 75000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 750
+      },
+      "benefits": [
+        "2x miles on every purchase",
+        "Transfer to 15+ airline and hotel partners",
+        "Up to $100 Global Entry/TSA PreCheck credit",
+        "No foreign transaction fees"
+      ],
+      "bestFor": [
+        "simple-travel",
+        "flexible-points",
+        "mid-tier-travel"
+      ],
+      "sourceOfTruthUrl": "https://www.capitalone.com/credit-cards/venture/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "Capital One Venture"
+    },
+    {
+      "id": "amex_platinum",
+      "cardId": "amex_platinum",
+      "card_id": "amex_platinum",
       "issuer": "American Express",
-      "network": "American Express",
+      "network": "Amex",
+      "productName": "The Platinum Card\u00ae",
       "annualFee": 695,
-      "programs": ["Amex Membership Rewards"],
+      "annualFeeUsd": 695,
+      "rewardsProgram": "Membership Rewards",
+      "programs": [
+        "Membership Rewards"
+      ],
+      "pointValueCents": 2.0,
+      "valuationCPP": 2.0,
+      "earn": [
+        {
+          "category": "airfare_direct_or_amex_travel",
+          "rateX": 5
+        },
+        {
+          "category": "prepaid_hotels_amex_travel",
+          "rateX": 5
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "airfare_direct_or_amex_travel",
+          "rate": 5
+        },
+        {
+          "category": "prepaid_hotels_amex_travel",
+          "rate": 5
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [
+        "Aer Lingus AerClub",
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "ANA Mileage Club",
+        "Avianca LifeMiles",
+        "British Airways Avios",
+        "Delta SkyMiles",
+        "Etihad Guest",
+        "HawaiianMiles",
+        "Iberia Plus",
+        "JetBlue TrueBlue",
+        "Qantas Frequent Flyer",
+        "Singapore KrisFlyer",
+        "Virgin Atlantic Flying Club",
+        "Choice Privileges",
+        "Hilton Honors",
+        "Marriott Bonvoy"
+      ],
+      "credits": [
+        {
+          "creditId": "airline_incidental_annual",
+          "title": "$200 Airline Incidental Credit",
+          "type": "AIRLINE_INCIDENTAL",
+          "amount": {
+            "currency": "USD",
+            "value": 200
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CALENDAR_YEAR"
+          },
+          "eligibility": {
+            "requiresEnrollment": true,
+            "channel": "ANY",
+            "mccAllow": [
+              "AIRLINES"
+            ],
+            "mccBlock": [
+              "AIRLINES_TICKET_SALES"
+            ],
+            "notes": "Seat selection, checked bags, lounge day passes; excludes airfare"
+          },
+          "recognition": {
+            "matchOn": [
+              "mcc",
+              "merchant_name"
+            ],
+            "postingLagDays": 2
+          }
+        },
+        {
+          "creditId": "fhrr_thc_hotel_credit",
+          "title": "$200 FHR/THC Prepaid Hotel Credit",
+          "type": "HOTEL_PORTAL_BOOKING",
+          "amount": {
+            "currency": "USD",
+            "value": 200
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "portal": "AMEX_TRAVEL",
+            "portalCollections": [
+              "FINE_HOTELS_AND_RESORTS",
+              "THE_HOTEL_COLLECTION"
+            ],
+            "minNights": 2,
+            "notes": "The Hotel Collection requires a two-night minimum"
+          },
+          "recognition": {
+            "matchOn": [
+              "portal_booking_id"
+            ],
+            "postingLagDays": 3
+          }
+        },
+        {
+          "creditId": "amex_uber_cash",
+          "title": "$15 Monthly Uber Cash ($35 in December)",
+          "type": "RIDESHARE_MONTHLY",
+          "amount": {
+            "currency": "USD",
+            "value": 15
+          },
+          "frequency": {
+            "unit": "MONTHLY",
+            "resetRule": "CALENDAR_YEAR"
+          },
+          "eligibility": {
+            "channel": "UBER_US",
+            "notes": "Requires enrollment; December bonus adds $20"
+          }
+        },
+        {
+          "creditId": "amex_saks_credit",
+          "title": "$100 Saks Fifth Avenue Credit",
+          "type": "MERCHANT_SPECIFIC",
+          "amount": {
+            "currency": "USD",
+            "value": 50
+          },
+          "frequency": {
+            "unit": "SEMIANNUAL",
+            "resetRule": "JAN_JUN_JUL_DEC"
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "Saks Fifth Avenue"
+            ],
+            "requiresEnrollment": true
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "LOUNGE_ACCESS",
+          "network": [
+            "Centurion",
+            "Delta Sky Club",
+            "Priority Pass (no restaurants)"
+          ]
+        },
+        {
+          "type": "TRUSTED_TRAVELER_CREDIT",
+          "program": [
+            "Global Entry",
+            "TSA PreCheck"
+          ],
+          "amount": 100
+        },
+        {
+          "type": "CAR_RENTAL_STATUS",
+          "program": [
+            "Hertz President's Circle",
+            "Avis Preferred Plus",
+            "National Executive"
+          ]
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_DELAY",
+          "maxUsd": 500,
+          "hoursThreshold": 6
+        },
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 10000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 80000,
+        "spendRequirement": "Spend $6,000 in 6 months",
+        "estimatedValueUsd": 1600
+      },
       "signupBonus": {
         "points": 80000,
         "requirement": "Spend $6,000 in 6 months",
         "value": 1600
       },
-      "earningRates": [
-        { "category": "flights", "rate": 5 },
-        { "category": "hotels", "rate": 5 },
-        { "category": "other", "rate": 1 }
-      ],
       "benefits": [
-        "$200 airline fee credit",
-        "$200 hotel credit",
-        "$189 CLEAR credit",
-        "Centurion lounge access",
-        "Priority Pass lounge access",
-        "Global Entry/TSA PreCheck credit"
+        "$200 airline incidental credit",
+        "$200 prepaid hotel credit",
+        "$200+ annual Uber Cash",
+        "Global lounge collection access"
       ],
-      "transferPartners": [
-        "Delta SkyMiles",
-        "Air France/KLM Flying Blue",
-        "British Airways Avios",
-        "Marriott Bonvoy",
-        "Hilton Honors"
+      "bestFor": [
+        "luxury-travel",
+        "lounge-access",
+        "elite-status"
       ],
-      "valuationCPP": 2.0,
-      "bestFor": ["luxury-travel", "lounge-access", "airline-elite"]
+      "sourceOfTruthUrl": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "The Platinum Card\u00ae"
     },
     {
-      "id": "citi-prestige",
-      "name": "Citi Prestige Card",
-      "issuer": "Citi",
-      "network": "Mastercard",
-      "annualFee": 495,
-      "programs": ["Citi ThankYou Points"],
-      "signupBonus": {
-        "points": 50000,
-        "requirement": "Spend $4,000 in 3 months",
-        "value": 800
-      },
+      "id": "amex_gold",
+      "cardId": "amex_gold",
+      "card_id": "amex_gold",
+      "issuer": "American Express",
+      "network": "Amex",
+      "productName": "American Express\u00ae Gold Card",
+      "annualFee": 250,
+      "annualFeeUsd": 250,
+      "rewardsProgram": "Membership Rewards",
+      "programs": [
+        "Membership Rewards"
+      ],
+      "pointValueCents": 1.8,
+      "valuationCPP": 1.8,
+      "earn": [
+        {
+          "category": "dining",
+          "rateX": 4
+        },
+        {
+          "category": "us_supermarkets",
+          "rateX": 4
+        },
+        {
+          "category": "airfare_direct_or_amex_travel",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
       "earningRates": [
-        { "category": "travel", "rate": 5 },
-        { "category": "dining", "rate": 5 },
-        { "category": "entertainment", "rate": 5 },
-        { "category": "other", "rate": 1 }
-      },
-      "benefits": [
-        "$250 annual air travel credit",
-        "4th night hotel free",
-        "Priority Pass lounge access",
-        "No foreign transaction fees"
+        {
+          "category": "dining",
+          "rate": 4
+        },
+        {
+          "category": "us_supermarkets",
+          "rate": 4
+        },
+        {
+          "category": "airfare_direct_or_amex_travel",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
       ],
       "transferPartners": [
-        "Singapore Airlines KrisFlyer",
-        "Virgin Atlantic",
-        "JetBlue TrueBlue",
-        "Turkish Airlines",
-        "Hilton Honors"
-      ],
-      "valuationCPP": 1.6,
-      "bestFor": ["hotel-stays", "dining", "travel"]
-    },
-    {
-      "id": "capital-one-venture-x",
-      "name": "Capital One Venture X",
-      "issuer": "Capital One",
-      "network": "Visa",
-      "annualFee": 395,
-      "programs": ["Capital One Miles"],
-      "signupBonus": {
-        "points": 75000,
-        "requirement": "Spend $4,000 in 3 months",
-        "value": 750
-      },
-      "earningRates": [
-        { "category": "hotels", "rate": 10 },
-        { "category": "rentals", "rate": 10 },
-        { "category": "travel", "rate": 2 },
-        { "category": "other", "rate": 2 }
-      ],
-      "benefits": [
-        "$300 annual travel credit",
-        "Priority Pass lounge access",
-        "Capital One lounge access",
-        "$100 TSA PreCheck/Global Entry credit",
-        "10,000 anniversary bonus miles"
-      ],
-      "transferPartners": [
-        "Turkish Airlines",
+        "Aer Lingus AerClub",
         "Air Canada Aeroplan",
-        "Singapore Airlines KrisFlyer",
-        "Avianca LifeMiles"
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Delta SkyMiles",
+        "Etihad Guest",
+        "Iberia Plus",
+        "Singapore KrisFlyer",
+        "Virgin Atlantic Flying Club",
+        "Choice Privileges",
+        "Hilton Honors",
+        "Marriott Bonvoy"
       ],
-      "valuationCPP": 1.0,
-      "bestFor": ["simple-redemption", "lounge-access", "hotels"]
+      "credits": [
+        {
+          "creditId": "amex_gold_dining_monthly",
+          "title": "$10 Monthly Dining Credit",
+          "type": "DINING_MONTHLY",
+          "amount": {
+            "currency": "USD",
+            "value": 10
+          },
+          "frequency": {
+            "unit": "MONTHLY",
+            "resetRule": "CALENDAR_YEAR"
+          },
+          "eligibility": {
+            "requiresEnrollment": true,
+            "merchantAllow": [
+              "Grubhub",
+              "Seamless",
+              "Goldbelly",
+              "Milk Bar",
+              "Wine.com"
+            ],
+            "notes": "Enroll and use eligible merchants each month"
+          }
+        },
+        {
+          "creditId": "amex_gold_uber_cash",
+          "title": "$10 Monthly Uber Cash",
+          "type": "RIDESHARE_MONTHLY",
+          "amount": {
+            "currency": "USD",
+            "value": 10
+          },
+          "frequency": {
+            "unit": "MONTHLY",
+            "resetRule": "CALENDAR_YEAR"
+          },
+          "eligibility": {
+            "channel": "UBER_US",
+            "requiresEnrollment": true
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "HOTEL_COLLECTION_ACCESS"
+        },
+        {
+          "type": "NO_FOREIGN_TRANSACTION_FEES"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_DELAY",
+          "maxUsd": 300,
+          "hoursThreshold": 12
+        }
+      ],
+      "welcomeOffer": {
+        "points": 60000,
+        "spendRequirement": "Spend $4,000 in 6 months",
+        "estimatedValueUsd": 900
+      },
+      "signupBonus": {
+        "points": 60000,
+        "requirement": "Spend $4,000 in 6 months",
+        "value": 900
+      },
+      "benefits": [
+        "$120 dining credits ($10 monthly)",
+        "$120 Uber Cash ($10 monthly)",
+        "4x on restaurants and U.S. supermarkets",
+        "Strong travel partners via Membership Rewards"
+      ],
+      "bestFor": [
+        "dining",
+        "grocery",
+        "travel-credits"
+      ],
+      "sourceOfTruthUrl": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "American Express\u00ae Gold Card"
     },
     {
-      "id": "chase-freedom-unlimited",
-      "name": "Chase Freedom Unlimited",
-      "issuer": "Chase",
-      "network": "Visa",
-      "annualFee": 0,
-      "programs": ["Chase Ultimate Rewards"],
-      "signupBonus": {
-        "points": 20000,
-        "requirement": "Spend $500 in 3 months",
-        "value": 200
-      },
+      "id": "amex_green",
+      "cardId": "amex_green",
+      "card_id": "amex_green",
+      "issuer": "American Express",
+      "network": "Amex",
+      "productName": "American Express\u00ae Green Card",
+      "annualFee": 150,
+      "annualFeeUsd": 150,
+      "rewardsProgram": "Membership Rewards",
+      "programs": [
+        "Membership Rewards"
+      ],
+      "pointValueCents": 1.8,
+      "valuationCPP": 1.8,
+      "earn": [
+        {
+          "category": "travel_other",
+          "rateX": 3
+        },
+        {
+          "category": "transit",
+          "rateX": 3
+        },
+        {
+          "category": "dining",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
       "earningRates": [
-        { "category": "travel", "rate": 5 },
-        { "category": "dining", "rate": 3 },
-        { "category": "drugstore", "rate": 3 },
-        { "category": "other", "rate": 1.5 }
-      ],
-      "benefits": [
-        "No annual fee",
-        "No foreign transaction fees",
-        "Cell phone protection",
-        "Auto rental collision coverage"
-      ],
-      "transferPartners": [],
-      "valuationCPP": 1.5,
-      "bestFor": ["no-fee", "everyday-spending", "chase-ecosystem"]
-    },
-    {
-      "id": "bilt-mastercard",
-      "name": "Bilt Mastercard",
-      "issuer": "Wells Fargo",
-      "network": "Mastercard",
-      "annualFee": 0,
-      "programs": ["Bilt Rewards"],
-      "signupBonus": {
-        "points": 15000,
-        "requirement": "Spend $1,000 in 3 months",
-        "value": 300
-      },
-      "earningRates": [
-        { "category": "rent", "rate": 1 },
-        { "category": "travel", "rate": 2 },
-        { "category": "dining", "rate": 3 },
-        { "category": "other", "rate": 1 }
-      ],
-      "benefits": [
-        "Earn points on rent (no fee)",
-        "Neighborhood rewards",
-        "Fitness membership perks",
-        "Transfer to airline/hotel partners"
+        {
+          "category": "travel_other",
+          "rate": 3
+        },
+        {
+          "category": "transit",
+          "rate": 3
+        },
+        {
+          "category": "dining",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
       ],
       "transferPartners": [
-        "United MileagePlus",
-        "American Airlines AAdvantage",
-        "World of Hyatt",
-        "IHG Rewards",
-        "Virgin Atlantic"
+        "Aer Lingus AerClub",
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Delta SkyMiles",
+        "Etihad Guest",
+        "Iberia Plus",
+        "Singapore KrisFlyer",
+        "Virgin Atlantic Flying Club"
       ],
-      "valuationCPP": 2.0,
-      "bestFor": ["rent-payment", "no-fee", "flexible-transfers"]
-    },
-    {
-      "id": "marriott-bonvoy-boundless",
-      "name": "Marriott Bonvoy Boundless",
-      "issuer": "Chase",
-      "network": "Visa",
-      "annualFee": 95,
-      "programs": ["Marriott Bonvoy"],
+      "credits": [
+        {
+          "creditId": "amex_green_travel_portal_credit",
+          "title": "$189 CLEAR Plus Credit",
+          "type": "MERCHANT_SPECIFIC",
+          "amount": {
+            "currency": "USD",
+            "value": 189
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "CLEAR"
+            ],
+            "requiresEnrollment": true
+          }
+        },
+        {
+          "creditId": "amex_green_loungebuddy",
+          "title": "$100 LoungeBuddy Credit",
+          "type": "MERCHANT_SPECIFIC",
+          "amount": {
+            "currency": "USD",
+            "value": 100
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "LoungeBuddy"
+            ]
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "TRIP_DELAY_COVERAGE",
+          "maxUsd": 300
+        },
+        {
+          "type": "NO_FOREIGN_TRANSACTION_FEES"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_DELAY",
+          "maxUsd": 300,
+          "hoursThreshold": 12
+        }
+      ],
+      "welcomeOffer": {
+        "points": 40000,
+        "spendRequirement": "Spend $3,000 in 6 months",
+        "estimatedValueUsd": 600
+      },
       "signupBonus": {
-        "points": 75000,
-        "requirement": "Spend $3,000 in 3 months",
+        "points": 40000,
+        "requirement": "Spend $3,000 in 6 months",
         "value": 600
       },
-      "earningRates": [
-        { "category": "marriott", "rate": 6 },
-        { "category": "other", "rate": 2 }
-      ],
       "benefits": [
-        "Annual free night certificate (up to 50k points)",
-        "Silver Elite status",
-        "No foreign transaction fees"
+        "$189 CLEAR credit",
+        "$100 LoungeBuddy credits",
+        "3x points on travel, transit, and dining",
+        "Solid Membership Rewards partners"
       ],
-      "transferPartners": [],
-      "valuationCPP": 0.8,
-      "bestFor": ["marriott-stays", "hotel-elite", "anniversary-night"]
+      "bestFor": [
+        "urban-travel",
+        "frequent-transit",
+        "membership-rewards"
+      ],
+      "sourceOfTruthUrl": "https://www.americanexpress.com/us/credit-cards/card/green-card/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "American Express\u00ae Green Card"
     },
     {
-      "id": "hilton-honors-aspire",
-      "name": "Hilton Honors American Express Aspire",
-      "issuer": "American Express",
-      "network": "American Express",
-      "annualFee": 450,
-      "programs": ["Hilton Honors"],
-      "signupBonus": {
-        "points": 150000,
-        "requirement": "Spend $4,000 in 3 months",
-        "value": 750
-      },
+      "id": "citi_strata_premier",
+      "cardId": "citi_strata_premier",
+      "card_id": "citi_strata_premier",
+      "issuer": "Citi",
+      "network": "Mastercard",
+      "productName": "Citi Strata Premier\u2120",
+      "annualFee": 95,
+      "annualFeeUsd": 95,
+      "rewardsProgram": "ThankYou Points",
+      "programs": [
+        "ThankYou Points"
+      ],
+      "pointValueCents": 1.25,
+      "valuationCPP": 1.25,
+      "earn": [
+        {
+          "category": "airfare",
+          "rateX": 3
+        },
+        {
+          "category": "hotels",
+          "rateX": 3
+        },
+        {
+          "category": "restaurants",
+          "rateX": 3
+        },
+        {
+          "category": "supermarkets",
+          "rateX": 3
+        },
+        {
+          "category": "gas",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
       "earningRates": [
-        { "category": "hilton", "rate": 14 },
-        { "category": "dining", "rate": 7 },
-        { "category": "travel", "rate": 7 },
-        { "category": "other", "rate": 3 }
+        {
+          "category": "airfare",
+          "rate": 3
+        },
+        {
+          "category": "hotels",
+          "rate": 3
+        },
+        {
+          "category": "restaurants",
+          "rate": 3
+        },
+        {
+          "category": "supermarkets",
+          "rate": 3
+        },
+        {
+          "category": "gas",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [
+        "Avianca LifeMiles",
+        "Air France KLM Flying Blue",
+        "Qantas Frequent Flyer",
+        "Qatar Privilege Club",
+        "Turkish Miles&Smiles",
+        "Virgin Atlantic Flying Club",
+        "Choice Privileges",
+        "Wyndham Rewards"
+      ],
+      "credits": [
+        {
+          "creditId": "citi_hotel_100_single_stay",
+          "title": "$100 Citi Travel Hotel Credit",
+          "type": "HOTEL_PORTAL_BOOKING",
+          "amount": {
+            "currency": "USD",
+            "value": 100
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "portal": "CITI_THANKYOU",
+            "minSpendUsd": 500,
+            "singleStayOnly": true,
+            "notes": "Applied to a single hotel booking of $500 or more"
+          },
+          "recognition": {
+            "matchOn": [
+              "portal_booking_id"
+            ],
+            "postingLagDays": 2
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "WORLD_ELITE_BENEFITS"
+        },
+        {
+          "type": "NO_FOREIGN_TRANSACTION_FEES"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 5000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 70000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 875
+      },
+      "signupBonus": {
+        "points": 70000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 875
       },
       "benefits": [
-        "$250 airline fee credit",
-        "$250 Hilton resort credit",
-        "Priority Pass lounge access",
-        "Diamond elite status",
-        "Annual free weekend night"
+        "$100 annual hotel credit through Citi Travel",
+        "3x on travel, dining, supermarkets, and gas",
+        "Rich ThankYou transfer partners",
+        "No foreign transaction fees"
+      ],
+      "bestFor": [
+        "versatile-travel",
+        "flexible-points",
+        "everyday-spend"
+      ],
+      "sourceOfTruthUrl": "https://www.citi.com/credit-cards/credit-card-details/citi.action?ID=citi-strata-premier-card",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "Citi Strata Premier\u2120"
+    },
+    {
+      "id": "usbank_altitude_reserve",
+      "cardId": "usbank_altitude_reserve",
+      "card_id": "usbank_altitude_reserve",
+      "issuer": "U.S. Bank",
+      "network": "Visa",
+      "productName": "U.S. Bank Altitude\u00ae Reserve",
+      "annualFee": 400,
+      "annualFeeUsd": 400,
+      "rewardsProgram": "Altitude Rewards",
+      "programs": [
+        "Altitude Rewards"
+      ],
+      "pointValueCents": 1.5,
+      "valuationCPP": 1.5,
+      "earn": [
+        {
+          "category": "mobile_wallet_spend",
+          "rateX": 3
+        },
+        {
+          "category": "travel_other",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "mobile_wallet_spend",
+          "rate": 3
+        },
+        {
+          "category": "travel_other",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
       ],
       "transferPartners": [],
-      "valuationCPP": 0.5,
-      "bestFor": ["hilton-stays", "diamond-status", "resort-credits"]
+      "credits": [
+        {
+          "creditId": "usb_travel_annual_325",
+          "title": "$325 Travel Credit",
+          "type": "GENERIC_TRAVEL",
+          "amount": {
+            "currency": "USD",
+            "value": 325
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "mccAllow": [
+              "TRAVEL_ALL"
+            ],
+            "notes": "Automatically reimburses travel purchases until exhausted"
+          },
+          "recognition": {
+            "matchOn": [
+              "mcc"
+            ],
+            "postingLagDays": 1
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "PRIORITY_PASS_SELECT",
+          "guestPolicy": "4 visits/year"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 5000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 50000,
+        "spendRequirement": "Spend $4,500 in 90 days",
+        "estimatedValueUsd": 750
+      },
+      "signupBonus": {
+        "points": 50000,
+        "requirement": "Spend $4,500 in 90 days",
+        "value": 750
+      },
+      "benefits": [
+        "$325 automatic travel credit",
+        "3x on mobile wallet and travel purchases",
+        "Priority Pass Select membership",
+        "50% more value when redeemed through Real-Time Rewards"
+      ],
+      "bestFor": [
+        "mobile-wallet",
+        "travel-credit",
+        "premium-lite"
+      ],
+      "sourceOfTruthUrl": "https://www.usbank.com/credit-cards/altitude-reserve-visa-infinite.html",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "U.S. Bank Altitude\u00ae Reserve"
+    },
+    {
+      "id": "boa_premium_rewards_elite",
+      "cardId": "boa_premium_rewards_elite",
+      "card_id": "boa_premium_rewards_elite",
+      "issuer": "Bank of America",
+      "network": "Visa",
+      "productName": "Bank of America\u00ae Premium Rewards\u00ae Elite",
+      "annualFee": 550,
+      "annualFeeUsd": 550,
+      "rewardsProgram": "BOA Points",
+      "programs": [
+        "BOA Points"
+      ],
+      "pointValueCents": 1.0,
+      "valuationCPP": 1.0,
+      "earn": [
+        {
+          "category": "travel_other",
+          "rateX": 2
+        },
+        {
+          "category": "dining",
+          "rateX": 2
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "travel_other",
+          "rate": 2
+        },
+        {
+          "category": "dining",
+          "rate": 2
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [],
+      "credits": [
+        {
+          "creditId": "boa_airline_incidental",
+          "title": "$300 Airline Incidental Credit",
+          "type": "AIRLINE_INCIDENTAL",
+          "amount": {
+            "currency": "USD",
+            "value": 300
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CALENDAR_YEAR"
+          },
+          "eligibility": {
+            "mccAllow": [
+              "AIRLINES"
+            ],
+            "mccBlock": [
+              "AIRLINES_TICKET_SALES"
+            ],
+            "notes": "Automatically reimburses qualifying incidental charges"
+          },
+          "recognition": {
+            "matchOn": [
+              "mcc",
+              "merchant_name"
+            ],
+            "postingLagDays": 2
+          }
+        },
+        {
+          "creditId": "boa_trusted_traveler",
+          "title": "Global Entry/TSA PreCheck Credit",
+          "type": "TRUSTED_TRAVELER_CREDIT",
+          "amount": {
+            "currency": "USD",
+            "value": 100
+          },
+          "frequency": {
+            "unit": "EVERY_N_YEARS",
+            "resetRule": "CARDMEMBER_YEAR",
+            "nYears": 4
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "U.S. CBP",
+              "TSA"
+            ],
+            "notes": "Reimbursed once every four years"
+          }
+        },
+        {
+          "creditId": "boa_lifestyle",
+          "title": "$150 Lifestyle Credit",
+          "type": "MERCHANT_SPECIFIC",
+          "amount": {
+            "currency": "USD",
+            "value": 150
+          },
+          "frequency": {
+            "unit": "ANNUAL",
+            "resetRule": "CARDMEMBER_YEAR"
+          },
+          "eligibility": {
+            "merchantAllow": [
+              "Select Lifestyle Merchants"
+            ],
+            "notes": "Use for fitness, dining, or streaming merchants"
+          }
+        }
+      ],
+      "perks": [
+        {
+          "type": "PRIORITY_PASS_SELECT"
+        },
+        {
+          "type": "PREMIUM_INSURANCE_SUITE"
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 10000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 75000,
+        "spendRequirement": "Spend $5,000 in 90 days",
+        "estimatedValueUsd": 750
+      },
+      "signupBonus": {
+        "points": 75000,
+        "requirement": "Spend $5,000 in 90 days",
+        "value": 750
+      },
+      "benefits": [
+        "$300 airline incidental credit",
+        "$150 lifestyle credit",
+        "Priority Pass Select membership",
+        "Premium travel protections"
+      ],
+      "bestFor": [
+        "airline-travel",
+        "lifestyle-credit",
+        "premium-lite"
+      ],
+      "sourceOfTruthUrl": "https://www.bankofamerica.com/credit-cards/products/premium-rewards-elite/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "Bank of America\u00ae Premium Rewards\u00ae Elite"
+    },
+    {
+      "id": "wells_fargo_autograph_journey",
+      "cardId": "wells_fargo_autograph_journey",
+      "card_id": "wells_fargo_autograph_journey",
+      "issuer": "Wells Fargo",
+      "network": "Visa",
+      "productName": "Wells Fargo Autograph Journey\u2120",
+      "annualFee": 95,
+      "annualFeeUsd": 95,
+      "rewardsProgram": "Autograph Rewards",
+      "programs": [
+        "Autograph Rewards"
+      ],
+      "pointValueCents": 1.0,
+      "valuationCPP": 1.0,
+      "earn": [
+        {
+          "category": "hotels",
+          "rateX": 5
+        },
+        {
+          "category": "airfare",
+          "rateX": 4
+        },
+        {
+          "category": "dining",
+          "rateX": 3
+        },
+        {
+          "category": "transit",
+          "rateX": 3
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "hotels",
+          "rate": 5
+        },
+        {
+          "category": "airfare",
+          "rate": 4
+        },
+        {
+          "category": "dining",
+          "rate": 3
+        },
+        {
+          "category": "transit",
+          "rate": 3
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [],
+      "credits": [],
+      "perks": [
+        {
+          "type": "CELL_PHONE_PROTECTION",
+          "maxUsd": 800
+        }
+      ],
+      "protections": [
+        {
+          "type": "TRIP_CANCELLATION",
+          "maxUsd": 5000
+        }
+      ],
+      "welcomeOffer": {
+        "points": 60000,
+        "spendRequirement": "Spend $4,000 in 3 months",
+        "estimatedValueUsd": 600
+      },
+      "signupBonus": {
+        "points": 60000,
+        "requirement": "Spend $4,000 in 3 months",
+        "value": 600
+      },
+      "benefits": [
+        "5x on hotels and 4x on airfare",
+        "3x on dining and transit",
+        "Cell phone protection",
+        "No foreign transaction fees"
+      ],
+      "bestFor": [
+        "general-travel",
+        "cell-phone",
+        "mid-tier-travel"
+      ],
+      "sourceOfTruthUrl": "https://www.wellsfargo.com/credit-cards/autograph-journey/",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "Wells Fargo Autograph Journey\u2120"
+    },
+    {
+      "id": "bilt_mastercard",
+      "cardId": "bilt_mastercard",
+      "card_id": "bilt_mastercard",
+      "issuer": "Wells Fargo (Bilt)",
+      "network": "Mastercard",
+      "productName": "Bilt Mastercard\u00ae",
+      "annualFee": 0,
+      "annualFeeUsd": 0,
+      "rewardsProgram": "Bilt Rewards",
+      "programs": [
+        "Bilt Rewards"
+      ],
+      "pointValueCents": 1.8,
+      "valuationCPP": 1.8,
+      "earn": [
+        {
+          "category": "rent",
+          "rateX": 1
+        },
+        {
+          "category": "dining",
+          "rateX": 3
+        },
+        {
+          "category": "travel_other",
+          "rateX": 2
+        },
+        {
+          "category": "other",
+          "rateX": 1
+        }
+      ],
+      "earningRates": [
+        {
+          "category": "rent",
+          "rate": 1
+        },
+        {
+          "category": "dining",
+          "rate": 3
+        },
+        {
+          "category": "travel_other",
+          "rate": 2
+        },
+        {
+          "category": "other",
+          "rate": 1
+        }
+      ],
+      "transferPartners": [
+        "American Airlines AAdvantage",
+        "United MileagePlus",
+        "Air Canada Aeroplan",
+        "Air France KLM Flying Blue",
+        "British Airways Avios",
+        "Iberia Plus",
+        "Virgin Atlantic Flying Club",
+        "Emirates Skywards",
+        "Turkish Miles&Smiles",
+        "HawaiianMiles",
+        "Hyatt",
+        "IHG One Rewards",
+        "Marriott Bonvoy"
+      ],
+      "credits": [],
+      "perks": [
+        {
+          "type": "RENT_PAYMENT_REWARD"
+        },
+        {
+          "type": "POINTS_BONUS_DAY",
+          "detail": "Rent Day multipliers"
+        }
+      ],
+      "protections": [
+        {
+          "type": "PRIMARY_CAR_RENTAL_CDW"
+        }
+      ],
+      "welcomeOffer": {
+        "points": 0,
+        "spendRequirement": "No traditional welcome offer",
+        "estimatedValueUsd": 0,
+        "notes": "Focus on rent rewards"
+      },
+      "signupBonus": {
+        "points": 0,
+        "requirement": "No signup bonus",
+        "value": 0
+      },
+      "benefits": [
+        "Earn points on rent with no fee",
+        "3x dining, 2x travel",
+        "Monthly Rent Day bonuses",
+        "Strong airline and hotel transfer partners"
+      ],
+      "bestFor": [
+        "renters",
+        "flexible-points",
+        "no-fee"
+      ],
+      "sourceOfTruthUrl": "https://www.bilt.com/card",
+      "lastVerifiedUtc": "2025-01-18T00:00:00Z",
+      "name": "Bilt Mastercard\u00ae"
     }
   ]
 }
