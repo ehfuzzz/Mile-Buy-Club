@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { QueueModule } from './jobs/queue.module';
 import { ProvidersModule } from './providers/providers.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ProvidersModule,
     NotificationsModule,
     QueueModule,
+    AiModule,
     HealthModule,
     UsersModule,
   ],
