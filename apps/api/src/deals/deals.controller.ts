@@ -16,6 +16,12 @@ export class DealsController {
     return this.dealsService.listDeals(userId, take);
   }
 
+  @Get('debug')
+  @ApiOperation({ summary: 'Debug SeatsAero service' })
+  async debugSeatsAero() {
+    return this.dealsService.debugSeatsAero();
+  }
+
   @Get(':watcherId')
   @ApiOperation({ summary: 'List deals for a specific watcher' })
   @ApiQuery({ name: 'userId', required: false })

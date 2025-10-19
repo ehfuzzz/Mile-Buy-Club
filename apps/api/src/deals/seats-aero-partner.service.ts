@@ -130,12 +130,19 @@ export class SeatsAeroPartnerService {
     try {
       // Use bulk availability endpoint if no specific route, otherwise use cached search
       const endpoint = (options.origin && options.destination) ? '/search' : '/availability';
+      console.log(`DEBUG: Making SeatsAero request to ${endpoint} with params:`, params);
+      
       const response = await this.http.get<SeatsAeroPartnerSearchResponse>(endpoint, {
         params,
       });
 
+      console.log(`DEBUG: SeatsAero response status: ${response.status}`);
       const payload = response.data ?? {};
+      console.log(`DEBUG: SeatsAero response data keys:`, Object.keys(payload));
+      
       const deals = this.extractDeals(payload);
+      console.log(`DEBUG: Extracted ${deals.length} deals from response`);
+      
       const total =
         typeof payload.meta?.total === 'number' && payload.meta.total >= 0
           ? payload.meta.total
@@ -143,6 +150,7 @@ export class SeatsAeroPartnerService {
 
       return { deals, total };
     } catch (error) {
+      console.error('DEBUG: SeatsAero service error:', error);
       this.logger.error('Failed to fetch SeatsAero live deals', error as Error);
       throw error;
     }

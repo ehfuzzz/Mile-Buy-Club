@@ -569,4 +569,22 @@ export class DealsService {
     }
     return value as Record<string, unknown>;
   }
+
+  async debugSeatsAero() {
+    try {
+      const result = await this.seatsAeroPartnerService.search({ take: 1 });
+      return {
+        success: true,
+        message: 'SeatsAero service working',
+        deals: result.deals,
+        total: result.total,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.stack : undefined,
+      };
+    }
+  }
 }
