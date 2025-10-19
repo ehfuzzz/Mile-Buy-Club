@@ -609,7 +609,7 @@ export class WatcherProcessor {
           pointsCashMiles: deal.pointsCashMiles ?? null,
           availability: deal.availability ?? null,
           primaryPricingType: deal.primaryPricingType,
-          pricingOptions: deal.pricingOptions ?? null,
+          pricingOptions: deal.pricingOptions ? JSON.parse(JSON.stringify(deal.pricingOptions)) : null,
           score: deal.score,
           title: deal.title,
           description: this.buildAlertMessage(deal),
@@ -623,7 +623,7 @@ export class WatcherProcessor {
             pointsCashPrice: deal.pointsCashPrice ?? null,
           },
           isNew: false,
-          rawData: deal.data ?? null,
+          rawData: deal.data ? JSON.parse(JSON.stringify(deal.data)) : null,
         },
         create: {
           watcherId: deal.watcherId,
@@ -661,10 +661,10 @@ export class WatcherProcessor {
           externalId: deal.externalId,
           availability: deal.availability ?? null,
           primaryPricingType: deal.primaryPricingType,
-          pricingOptions: deal.pricingOptions ?? null,
+          pricingOptions: deal.pricingOptions ? JSON.parse(JSON.stringify(deal.pricingOptions)) : null,
           cpp: this.calculateCpp(deal),
           value: this.calculateEstimatedValue(deal),
-          rawData: deal.data ?? null,
+          rawData: deal.data ? JSON.parse(JSON.stringify(deal.data)) : null,
         },
       });
     });

@@ -127,7 +127,7 @@ export class NotificationsService {
     const username = this.configService.get('SMTP_USER') ?? this.configService.get('MAIL_USERNAME');
     const password = this.configService.get('SMTP_PASS') ?? this.configService.get('MAIL_PASSWORD');
 
-    const transportOptions: nodemailer.TransportOptions = {
+    const transportOptions: any = {
       host,
       port,
       secure,

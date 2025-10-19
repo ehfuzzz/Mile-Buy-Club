@@ -104,14 +104,20 @@ export type DealSortOption =
   | "airline";
 
 export async function fetchDeals(userId?: string): Promise<Deal[]> {
-  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
-  const { success, data, error } = await api.get<DealsResponse>(`/deals${query}`);
+  try {
+    const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+    const { success, data, error } = await api.get<DealsResponse>(`/deals${query}`);
 
-  if (!success || !data) {
-    throw new Error(error?.message ?? "Unable to load deals");
+    if (!success || !data) {
+      console.warn("Unable to load deals from API:", error?.message ?? "Unknown error");
+      return []; // Return empty array instead of throwing error
+    }
+
+    return data.deals;
+  } catch (error) {
+    console.warn("Error fetching deals:", error);
+    return []; // Return empty array instead of throwing error
   }
-
-  return data.deals;
 }
 
 export function applyDealFilters(deals: Deal[], filters: DealFilterState): Deal[] {

@@ -8,7 +8,9 @@
     "rootDir": "./src",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@mile/shared": ["../../packages/shared/src"],
+      "@mile/shared/*": ["../../packages/shared/src/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -29,6 +31,7 @@
     "src/ai/**/*",
     "src/jobs/**/*",
     "src/notifications/**/*",
-    "src/watchers/**/*"
+    "src/watchers/**/*",
+    "src/providers/**/*"
   ]
 }

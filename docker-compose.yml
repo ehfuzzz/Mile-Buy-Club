@@ -9,7 +9,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-milebyclub}
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
-      POSTGRES_INITDB_ARGS: "-c max_connections=200"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -48,16 +47,6 @@ services:
     networks:
       - milebyclub
 
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-
-networks:
-  milebyclub:
-    driver: bridge
-
   # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
@@ -92,5 +81,13 @@ networks:
       - prometheus
 
 volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   prometheus-data:
   grafana-data:
+
+networks:
+  milebyclub:
+    driver: bridge

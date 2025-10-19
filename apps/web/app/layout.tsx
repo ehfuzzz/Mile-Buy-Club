@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 const THEME_COLOR = '#0f172a';
@@ -31,9 +32,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="flex min-h-screen flex-col">
-          <main className="flex-1">{children}</main>
-        </div>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            <main className="flex-1">{children}</main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );
