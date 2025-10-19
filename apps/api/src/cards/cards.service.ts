@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { CardRecommender, UserProfile, GapAnalyzer } from '@mile/shared/src/card-engine';
+import {
+  CardRecommender,
+  UserProfile,
+  GapAnalyzer,
+  CreditCard,
+} from '@mile/shared/src/card-engine';
 import { createLogger } from '@mile/shared/src/logger';
 
 const logger = createLogger('CardsService');
@@ -111,22 +116,26 @@ export class CardsService {
   /**
    * Get all available cards
    */
-  async getAllCards(): Promise<any> {
+  async getAllCards(): Promise<CreditCard[]> {
     const { default: cardDatabase } = await import('@mile/shared/src/card-engine');
-    return cardDatabase.cards;
+    return (cardDatabase.cards as CreditCard[]).map((card) => ({
+      ...card,
+      id: card.cardId ?? card.id,
+    }));
   }
 
   /**
    * Get card details by ID
    */
-  async getCardById(cardId: string): Promise<any> {
+  async getCardById(cardId: string): Promise<CreditCard> {
     const { default: cardDatabase } = await import('@mile/shared/src/card-engine');
-    const card = cardDatabase.cards.find((c: any) => c.id === cardId);
+    const cards = cardDatabase.cards as CreditCard[];
+    const card = cards.find((c) => (c.cardId ?? c.id) === cardId);
 
     if (!card) {
       throw new Error(`Card not found: ${cardId}`);
     }
 
-    return card;
+    return { ...card, id: card.cardId ?? card.id };
   }
 }

@@ -46,9 +46,14 @@ export class DealCleanupProcessor {
     }
   }
 
-  private async performCleanup(cutoffDate: Date, batchSize: number): Promise<number> {
+  private async performCleanup(
+    cutoffDate: Date,
+    batchSize: number
+  ): Promise<number> {
     // Mock implementation - would use Prisma in production
-    this.logger.log(`Would delete deals older than ${cutoffDate.toISOString()}`);
+    this.logger.log(
+      `Would delete deals older than ${cutoffDate.toISOString()} (batch size ${batchSize})`
+    );
     return 0;
   }
 }

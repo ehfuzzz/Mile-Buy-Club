@@ -19,6 +19,10 @@ interface DigestContent {
   topDeals: any[];
   newWatchers: number;
   savedAmount: number;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
 }
 
 @Injectable()
@@ -60,6 +64,11 @@ export class AlertDigestProcessor {
     startDate: Date,
     endDate: Date
   ): Promise<DigestContent> {
+    this.logger.debug('Gathering digest content', {
+      userId,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
     // TODO: Query database for deals in date range
     // Example:
     // const deals = await this.prisma.deal.findMany({
@@ -76,6 +85,10 @@ export class AlertDigestProcessor {
       topDeals: [],
       newWatchers: 0,
       savedAmount: 0,
+      period: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
     };
   }
 

@@ -9,12 +9,12 @@ export class GapAnalyzer {
     const userPrograms = new Set(userProfile.programs);
     const gaps: ProgramGap[] = [];
 
-    // Major airline programs
     const majorAirlines = [
       'United MileagePlus',
       'American Airlines AAdvantage',
       'Delta SkyMiles',
       'Southwest Rapid Rewards',
+      'Air Canada Aeroplan',
     ];
 
     majorAirlines.forEach((program) => {
@@ -27,12 +27,12 @@ export class GapAnalyzer {
       }
     });
 
-    // Major hotel programs
     const majorHotels = [
       'Marriott Bonvoy',
       'Hilton Honors',
       'World of Hyatt',
       'IHG Rewards',
+      'Choice Privileges',
     ];
 
     majorHotels.forEach((program) => {
@@ -45,12 +45,12 @@ export class GapAnalyzer {
       }
     });
 
-    // Flexible points programs
     const flexiblePrograms = [
       'Chase Ultimate Rewards',
-      'Amex Membership Rewards',
-      'Citi ThankYou Points',
+      'Membership Rewards',
+      'ThankYou Points',
       'Capital One Miles',
+      'Bilt Rewards',
     ];
 
     flexiblePrograms.forEach((program) => {
@@ -73,11 +73,9 @@ export class GapAnalyzer {
     const cards: CreditCard[] = [];
     const gapPrograms = new Set(gaps.map((g) => g.program));
 
-    cardDatabase.cards.forEach((card: any) => {
-      // Check if card fills any gaps
-      const fillsGaps = card.programs.some((program: string) =>
-        gapPrograms.has(program)
-      );
+    (cardDatabase.cards as CreditCard[]).forEach((card: any) => {
+      const coverage = new Set<string>([card.rewardsProgram, ...(card.programs ?? []), ...card.transferPartners]);
+      const fillsGaps = Array.from(coverage).some((program) => gapPrograms.has(program));
 
       if (fillsGaps) {
         cards.push(card as CreditCard);
@@ -100,30 +98,32 @@ export class GapAnalyzer {
     const userCards = userProfile.cards
       .filter((uc) => !uc.closed)
       .map((uc) => {
-        return cardDatabase.cards.find((c: any) => c.id === uc.cardId);
+        return (cardDatabase.cards as CreditCard[]).find((c: any) =>
+          (c.cardId ?? c.id) === uc.cardId
+        );
       })
-      .filter((c) => c !== undefined);
+      .filter((c): c is CreditCard => c !== undefined);
 
-    const hasFlexiblePoints = userCards.some((card: any) =>
-      ['Chase Ultimate Rewards', 'Amex Membership Rewards', 'Citi ThankYou Points'].some((p) =>
+    const hasFlexiblePoints = userCards.some((card) =>
+      ['Chase Ultimate Rewards', 'Membership Rewards', 'ThankYou Points', 'Capital One Miles', 'Bilt Rewards'].some((p) =>
         card.programs.includes(p)
       )
     );
 
-    const hasAirlineCard = userCards.some((card: any) =>
-      card.bestFor.includes('airline-elite')
+    const hasAirlineCard = userCards.some((card) =>
+      card.bestFor.some((tag) => tag.includes('airline') || tag.includes('flight'))
     );
 
-    const hasHotelCard = userCards.some((card: any) =>
-      card.bestFor.some((b: string) => b.includes('hotel'))
+    const hasHotelCard = userCards.some((card) =>
+      card.bestFor.some((tag) => tag.includes('hotel'))
     );
 
-    const hasNoFeeCard = userCards.some((card: any) => card.annualFee === 0);
+    const hasNoFeeCard = userCards.some((card) => card.annualFee === 0);
 
-    const needsImprovement = [];
+    const needsImprovement: string[] = [];
     if (!hasFlexiblePoints) needsImprovement.push('Add a flexible points card');
-    if (!hasAirlineCard) needsImprovement.push('Consider an airline-specific card');
-    if (!hasHotelCard) needsImprovement.push('Add a hotel card for status/benefits');
+    if (!hasAirlineCard) needsImprovement.push('Consider an airline-friendly travel card');
+    if (!hasHotelCard) needsImprovement.push('Add a hotel-focused card for status/benefits');
     if (!hasNoFeeCard) needsImprovement.push('Add a no-fee card for everyday spend');
 
     return {

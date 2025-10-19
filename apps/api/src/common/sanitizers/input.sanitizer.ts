@@ -77,7 +77,7 @@ export function sanitizeFilename(filename: string): string {
   let sanitized = filename.replace(/\.\./g, '');
 
   // Remove path separators
-  sanitized = sanitized.replace(/[\/\\]/g, '');
+  sanitized = sanitized.replace(/[/\\]/g, '');
 
   // Allow only alphanumeric, dash, underscore, and dot
   sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');

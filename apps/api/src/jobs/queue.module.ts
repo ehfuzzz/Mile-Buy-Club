@@ -9,6 +9,9 @@ import { WatcherProcessor } from './watcher.processor';
 import { DealCleanupProcessor } from './deal-cleanup.processor';
 import { AlertDigestProcessor } from './alert-digest.processor';
 import { SchedulerService } from './scheduler.service';
+import { PrismaModule } from '../common/prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { ProvidersModule } from '../providers/providers.module';
 
 export const QUEUE_NAMES = {
   WATCHER: 'watcher-queue',
@@ -19,6 +22,9 @@ export const QUEUE_NAMES = {
 @Module({
   imports: [
     ConfigModule,
+    PrismaModule,
+    NotificationsModule,
+    ProvidersModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
