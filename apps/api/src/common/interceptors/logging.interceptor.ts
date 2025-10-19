@@ -8,15 +8,16 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { createLogger } from '@mile/shared/src/logger';
+import { RequestWithId } from '../types/request-with-id';
 
 const logger = createLogger('API');
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<RequestWithId>();
     const { method, url, body, user } = request;
-    const requestId = request['requestId'];
+    const requestId = request.requestId;
     const timestamp = new Date().toISOString();
 
     logger.debug('API call', {

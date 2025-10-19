@@ -4,6 +4,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { createLogger } from '@mile/shared/src/logger';
 import { LinkGenerator } from './link-generator';
 import { AttributionService } from './attribution.service';
+import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('AffiliateService');
 
@@ -110,7 +111,10 @@ export class AffiliateService {
         provider: click.provider,
       });
     } catch (error) {
-      logger.error('Failed to record click', { error: error.message });
+      logger.error('Failed to record click', {
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
     }
   }
 
@@ -156,7 +160,8 @@ export class AffiliateService {
       // TODO: Integrate with notification service
     } catch (error) {
       logger.error('Failed to process conversion webhook', {
-        error: error.message,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
     }
   }
@@ -217,7 +222,8 @@ export class AffiliateService {
     } catch (error) {
       logger.error('Failed to get user click history', {
         userId,
-        error: error.message,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
       return [];
     }

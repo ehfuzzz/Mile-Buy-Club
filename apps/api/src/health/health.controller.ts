@@ -2,6 +2,7 @@ import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { createLogger } from '@mile/shared/src/logger';
+import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('Health');
 
@@ -26,12 +27,15 @@ export class HealthController {
         database: 'connected',
       };
     } catch (error) {
-      logger.error('Health check failed', { error: error.message });
+      logger.error('Health check failed', {
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         database: 'disconnected',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: getErrorMessage(error),
       };
     }
   }
@@ -82,7 +86,10 @@ export class HealthController {
       await this.prisma.healthCheck();
       checks.database = 'up';
     } catch (error) {
-      logger.error('Database check failed', { error: error.message });
+      logger.error('Database check failed', {
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
     }
 
     // TODO: Add Redis check

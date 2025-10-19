@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { createLogger } from '@mile/shared/src/logger';
+import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('AttributionService');
 
@@ -31,7 +32,11 @@ export class AttributionService {
 
       return null;
     } catch (error) {
-      logger.error('Failed to find click', { clickId, error: error.message });
+      logger.error('Failed to find click', {
+        clickId,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
       return null;
     }
   }
@@ -61,7 +66,10 @@ export class AttributionService {
       // return click;
       return null;
     } catch (error) {
-      logger.error('Failed to get attribution', { error: error.message });
+      logger.error('Failed to get attribution', {
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
       return null;
     }
   }
@@ -99,7 +107,10 @@ export class AttributionService {
 
       return click;
     } catch (error) {
-      logger.error('Failed to match conversion', { error: error.message });
+      logger.error('Failed to match conversion', {
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
+      });
       return null;
     }
   }
