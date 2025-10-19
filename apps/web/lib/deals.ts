@@ -109,14 +109,14 @@ export async function fetchDeals(userId?: string): Promise<Deal[]> {
     const { success, data, error } = await api.get<DealsResponse>(`/deals${query}`);
 
     if (!success || !data) {
-      console.warn("Unable to load deals from API:", error?.message ?? "Unknown error");
-      return []; // Return empty array instead of throwing error
+      const message = error?.message ?? "Unable to load deals from API";
+      throw new Error(message);
     }
 
     return data.deals;
   } catch (error) {
-    console.warn("Error fetching deals:", error);
-    return []; // Return empty array instead of throwing error
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to fetch deals: ${message}`);
   }
 }
 

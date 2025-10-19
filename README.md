@@ -76,14 +76,13 @@ mile-buy-club/
 - Turborepo
 - ESLint & Prettier
 
-### Flight Provider Capabilities
+### Flight Provider Strategy
 
-The stack now supports both award searches _and_ cash fares:
+Mile Buy Club now focuses exclusively on award availability surfaced through **SeatsAero**. Their API powers watcher runs and seeded award examples with detailed segment metadata, taxes/fees, and optional *points + cash* blends so travelers understand the full out-of-pocket cost.
 
-- **SeatsAero** and **Point.Me** surface real-time award inventory with miles, taxes/fees, and segment metadata. Each provider also publishes an estimated *points + cash* blend so travelers can see how much cash would be due if they offset a portion of the miles.
-- **Kiwi (Tequila API)** delivers paid inventory, including historically cheap cash fares, cabin data, and deep links for booking.
+All requests hit the SeatsAero **partner** API using the required `Partner-Authorization` header with the provided key (`pro_34GoHwfqK5fP3esJgqAhxv4cOmj`). The integration defaults to the partner base URL (`https://seats.aero/partnerapi`) so live deal polling and on-demand flight searches run against the real-time award feed.
 
-Watcher jobs merge these sources into unified deals with detailed pricing options (award-only, points + cash, and full cash) so users without large mileage balances can still act on attractive bargains. Each watcher run now evaluates every pricing path independently and cross-checks seat availability—expired or sold-out itineraries are removed automatically so only live inventory triggers alerts.
+Watcher jobs normalise the SeatsAero payloads into unified deals that include award pricing and hybrid cash offsets. Each run cross-checks seat availability so expired or sold-out itineraries are removed automatically before alerts are sent.
 
 ### Deal Dashboards
 
