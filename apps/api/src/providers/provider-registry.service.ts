@@ -1,17 +1,16 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-// Temporarily commented out to test backend startup
-// import {
-//   ProviderName,
-//   ProviderType,
-//   providerRegistry,
-//   SeatsAeroFlightProvider,
-//   SeatsAeroProviderConfig,
-//   PointMeFlightProvider,
-//   PointMeProviderConfig,
-//   KiwiFlightProvider,
-//   KiwiProviderConfig,
-// } from '@mile/providers';
+import {
+  ProviderName,
+  ProviderType,
+  providerRegistry,
+  SeatsAeroFlightProvider,
+  SeatsAeroProviderConfig,
+  PointMeFlightProvider,
+  PointMeProviderConfig,
+  KiwiFlightProvider,
+  KiwiProviderConfig,
+} from '@mile/providers';
 
 @Injectable()
 export class ProviderRegistryService implements OnModuleInit {

@@ -31,7 +31,6 @@
     "src/ai/**/*",
     "src/jobs/**/*",
     "src/notifications/**/*",
-    "src/watchers/**/*",
-    "src/providers/**/*"
+    "src/watchers/**/*"
   ]
 }
