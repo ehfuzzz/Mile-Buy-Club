@@ -5,16 +5,17 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  Flight,
-  FlightPricingOption,
-  FlightPricingOptionType,
-  FlightSearchParams,
-  ProviderName,
-  ProviderResponse,
-  ProviderType,
-  providerRegistry,
-} from '@mile/providers';
+// Temporarily comment out providers package imports to avoid module resolution issues
+// import {
+//   Flight,
+//   FlightPricingOption,
+//   FlightPricingOptionType,
+//   FlightSearchParams,
+//   ProviderName,
+//   ProviderResponse,
+//   ProviderType,
+//   providerRegistry,
+// } from '@mile/providers';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { QUEUE_NAMES } from './queue.module';

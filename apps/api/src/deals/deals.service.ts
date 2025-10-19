@@ -1,13 +1,63 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Deal, Prisma, Watcher } from '@prisma/client';
-import {
-  type Flight,
-  type FlightPricingOption,
-  type FlightPricingOptionType,
-  type FlightSegment,
-} from '@mile/providers';
+// Temporarily define types locally to avoid module resolution issues
+export type FlightPricingOptionType = 'cash' | 'award' | 'mixed';
+export interface FlightPricingOption {
+  type: FlightPricingOptionType;
+  cashAmount?: number;
+  cashCurrency?: string;
+  miles?: number;
+  points?: number;
+  currency?: string;
+  pointsCurrency?: string;
+  taxes?: number;
+  fees?: number;
+  totalTaxes?: number;
+  totalFees?: number;
+  availability?: number;
+  score?: number;
+  cpp?: number;
+  value?: number;
+  expiresAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
+  provider?: string;
+  bookingUrl?: string;
+  description?: string;
+  segments?: FlightSegment[];
+  isEstimated?: boolean;
+}
+
+export interface FlightSegment {
+  marketingCarrier?: string;
+  operatingCarrier?: string;
+  flightNumber?: string;
+  origin?: string;
+  destination?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  cabin?: 'economy' | 'premium_economy' | 'business' | 'first';
+  fareClass?: string;
+  aircraft?: string;
+  durationMinutes?: number;
+}
+
+export interface Flight {
+  id?: string;
+  provider?: string;
+  origin?: string;
+  destination?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  price?: number;
+  currency?: string;
+  airline?: string;
+  cabin?: 'economy' | 'premium_economy' | 'business' | 'first';
+  segments?: FlightSegment[];
+  pricingOptions?: FlightPricingOption[];
+}
 import { PrismaService } from '../common/prisma/prisma.service';
-import { SeatsAeroPartnerDeal, SeatsAeroPartnerService } from './seats-aero-partner.service';
+import { SeatsAeroPartnerDeal, SeatsAeroPartnerSegment, SeatsAeroPartnerService } from './seats-aero-partner.service';
 
 export interface DealPricingOptionView {
   type: FlightPricingOptionType;
@@ -344,10 +394,10 @@ export class DealsService {
       flightNumber: segment.flightNumber,
       origin: segment.origin ?? '',
       destination: segment.destination ?? '',
-      departureTime: segment.departure ?? segment.departureTime ?? '',
-      arrivalTime: segment.arrival ?? segment.arrivalTime ?? '',
+      departureTime: segment.departure ?? '',
+      arrivalTime: segment.arrival ?? '',
       cabin: (segment.cabin ?? defaultCabin ?? 'economy') as FlightSegment['cabin'],
-      fareClass: segment.fareClass ?? null,
+      fareClass: segment.fareClass ?? undefined,
       aircraft: segment.aircraft ?? undefined,
     }));
   }
@@ -404,7 +454,7 @@ export class DealsService {
       airline: deal.airline ?? raw?.airline ?? null,
       cabin: deal.cabin ?? raw?.cabin ?? null,
       route,
-      availability: deal.availability ?? raw?.availability ?? null,
+      availability: deal.availability ?? null,
       score: deal.score,
       cpp: deal.cpp ?? null,
       value: deal.value ?? null,

@@ -109,13 +109,17 @@ export class SeatsAeroPartnerService {
     const params: Record<string, string | number | undefined> = {
       take: options.take && options.take > 0 ? Math.min(options.take, 200) : 50,
       skip: options.skip,
-      origin: options.origin,
-      destination: options.destination,
-      departureDate: options.departureDate,
-      returnDate: options.returnDate,
-      cabin: options.cabin,
-      program: options.program,
+      source: options.program || 'united', // Default to United for now
     };
+
+    // Only add origin/destination if both are provided for cached search
+    if (options.origin && options.destination) {
+      params.origin = options.origin;
+      params.destination = options.destination;
+      params.departureDate = options.departureDate;
+      params.returnDate = options.returnDate;
+      params.cabin = options.cabin;
+    }
 
     for (const key of Object.keys(params)) {
       if (params[key] === undefined || params[key] === null || params[key] === '') {
@@ -124,7 +128,9 @@ export class SeatsAeroPartnerService {
     }
 
     try {
-      const response = await this.http.get<SeatsAeroPartnerSearchResponse>('/search', {
+      // Use bulk availability endpoint if no specific route, otherwise use cached search
+      const endpoint = (options.origin && options.destination) ? '/search' : '/availability';
+      const response = await this.http.get<SeatsAeroPartnerSearchResponse>(endpoint, {
         params,
       });
 
@@ -144,7 +150,8 @@ export class SeatsAeroPartnerService {
 
   private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
     if (Array.isArray(payload.data)) {
-      return payload.data;
+      // Handle bulk availability format
+      return payload.data.map((availability: any) => this.mapAvailabilityToDeal(availability));
     }
 
     if (Array.isArray(payload.results)) {
@@ -156,5 +163,145 @@ export class SeatsAeroPartnerService {
     }
 
     return [];
+  }
+
+  private mapAvailabilityToDeal(availability: any): SeatsAeroPartnerDeal {
+    const route = availability.Route || {};
+    const cabin = this.determineBestCabin(availability);
+    const miles = this.getMilesForCabin(availability, cabin);
+    const taxes = this.getTaxesForCabin(availability, cabin);
+    const seats = this.getSeatsForCabin(availability, cabin);
+
+    return {
+      id: availability.ID,
+      origin: route.OriginAirport,
+      destination: route.DestinationAirport,
+      departure: availability.Date,
+      arrival: availability.Date, // Same day for now
+      airline: route.Source,
+      carrier: route.Source,
+      cabin: cabin,
+      program: route.Source,
+      loyaltyProgram: route.Source,
+      miles: miles,
+      points: miles,
+      seats: seats,
+      seatsAvailable: seats,
+      taxes: taxes,
+      fees: 0,
+      totalTaxes: taxes,
+      totalFees: 0,
+      currency: availability.TaxesCurrency || 'USD',
+      taxesCurrency: availability.TaxesCurrency || 'USD',
+      availability: seats,
+      score: this.computeDealScore(miles, taxes, seats),
+      cpp: taxes > 0 ? miles / (taxes / 100) : 0,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      updatedAt: availability.UpdatedAt || new Date().toISOString(),
+      createdAt: availability.CreatedAt || new Date().toISOString(),
+      watcherId: 'seats-aero-bulk',
+      watcherName: 'SeatsAero Bulk Availability',
+      segments: [{
+        marketingCarrier: route.Source,
+        operatingCarrier: route.Source,
+        origin: route.OriginAirport,
+        destination: route.DestinationAirport,
+        departure: availability.Date,
+        arrival: availability.Date,
+        cabin: cabin,
+        fareClass: this.getFareClassForCabin(cabin),
+        aircraft: undefined,
+      }],
+    };
+  }
+
+  private determineBestCabin(availability: any): string {
+    // Prioritize business class, then economy, then first
+    if ((availability.JAvailable || availability.JAvailableRaw) && 
+        (availability.JMileageCost !== "0" && availability.JMileageCost !== null)) return 'business';
+    if ((availability.YAvailable || availability.YAvailableRaw) && 
+        (availability.YMileageCost !== "0" && availability.YMileageCost !== null)) return 'economy';
+    if ((availability.FAvailable || availability.FAvailableRaw) && 
+        (availability.FMileageCost !== "0" && availability.FMileageCost !== null)) return 'first';
+    if ((availability.WAvailable || availability.WAvailableRaw) && 
+        (availability.WMileageCost !== "0" && availability.WMileageCost !== null)) return 'premium_economy';
+    
+    // Fallback to any available cabin with miles > 0
+    if (availability.YMileageCost !== "0" && availability.YMileageCost !== null) return 'economy';
+    if (availability.JMileageCost !== "0" && availability.JMileageCost !== null) return 'business';
+    if (availability.FMileageCost !== "0" && availability.FMileageCost !== null) return 'first';
+    if (availability.WMileageCost !== "0" && availability.WMileageCost !== null) return 'premium_economy';
+    
+    return 'economy'; // Default fallback
+  }
+
+  private getMilesForCabin(availability: any, cabin: string): number {
+    switch (cabin) {
+      case 'business':
+        return parseInt(availability.JMileageCost || availability.JMileageCostRaw || '0');
+      case 'first':
+        return parseInt(availability.FMileageCost || availability.FMileageCostRaw || '0');
+      case 'premium_economy':
+        return parseInt(availability.WMileageCost || availability.WMileageCostRaw || '0');
+      case 'economy':
+      default:
+        return parseInt(availability.YMileageCost || availability.YMileageCostRaw || '0');
+    }
+  }
+
+  private getTaxesForCabin(availability: any, cabin: string): number {
+    switch (cabin) {
+      case 'business':
+        return parseInt(availability.JTotalTaxes || availability.JTotalTaxesRaw || '0');
+      case 'first':
+        return parseInt(availability.FTotalTaxes || availability.FTotalTaxesRaw || '0');
+      case 'premium_economy':
+        return parseInt(availability.WTotalTaxes || availability.WTotalTaxesRaw || '0');
+      case 'economy':
+      default:
+        return parseInt(availability.YTotalTaxes || availability.YTotalTaxesRaw || '0');
+    }
+  }
+
+  private getSeatsForCabin(availability: any, cabin: string): number {
+    switch (cabin) {
+      case 'business':
+        return parseInt(availability.JRemainingSeats || availability.JRemainingSeatsRaw || '0');
+      case 'first':
+        return parseInt(availability.FRemainingSeats || availability.FRemainingSeatsRaw || '0');
+      case 'premium_economy':
+        return parseInt(availability.WRemainingSeats || availability.WRemainingSeatsRaw || '0');
+      case 'economy':
+      default:
+        return parseInt(availability.YRemainingSeats || availability.YRemainingSeatsRaw || '0');
+    }
+  }
+
+  private getFareClassForCabin(cabin: string): string {
+    switch (cabin) {
+      case 'business': return 'J';
+      case 'first': return 'F';
+      case 'premium_economy': return 'W';
+      case 'economy': return 'Y';
+      default: return 'Y';
+    }
+  }
+
+  private computeDealScore(miles: number, taxes: number, seats: number): number {
+    let score = 70; // Base score
+    
+    // Higher score for more seats
+    if (seats > 5) score += 10;
+    else if (seats > 2) score += 5;
+    
+    // Higher score for lower miles (better value)
+    if (miles < 50000) score += 15;
+    else if (miles < 100000) score += 10;
+    
+    // Higher score for lower taxes
+    if (taxes < 500) score += 10;
+    else if (taxes < 1000) score += 5;
+    
+    return Math.min(100, score);
   }
 }
