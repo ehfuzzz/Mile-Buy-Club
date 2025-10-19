@@ -85,6 +85,52 @@ The stack now supports both award searches _and_ cash fares:
 
 Watcher jobs merge these sources into unified deals with detailed pricing options (award-only, points + cash, and full cash) so users without large mileage balances can still act on attractive bargains. Each watcher run now evaluates every pricing path independently and cross-checks seat availability—expired or sold-out itineraries are removed automatically so only live inventory triggers alerts.
 
+### AI Copilot & Vision-Powered Planning
+
+Mile Buy Club now ships an AI orchestration layer that rivals (and in many areas surpasses) assistants such as Layla.ai or Mindtrip:
+
+- **Trip Copilot API (`POST /ai/plan`)** – orchestrates ChatGPT travel planning with access to loyalty balances, watcher intent, live deal inventory, and traveler preferences. The planner outputs structured itineraries, award/cash optimization notes, and daily experience breakdowns that are persisted to Prisma for reuse.
+- **Conversational Memory (`POST /ai/chat`)** – maintains multi-turn context, tone controls (concierge, executive, friendly, expert), and surfaces follow-up actions so travelers can iteratively refine itineraries without losing personalization.
+- **Multimodal Geo Intelligence (`POST /ai/media/analyze`)** – leverages OpenAI vision models to recognise landmarks from photos or sampled video frames, infer vibes/seasonality, and tie results back to loyalty programs or points-friendly hotels.
+- **Autopilot Differentiators** – the orchestrator folds in watcher output, loyalty card perks, and real-time deal scoring so recommendations blend award availability, historically cheap cash fares, and points + cash bridges.
+
+Configure the integration by adding `OPENAI_API_KEY`, `OPENAI_MODEL`, and `OPENAI_VISION_MODEL` (see `.env.example`). After booting the NestJS API, explore the new endpoints via Swagger (`AI` tag) or the sample cURL calls below:
+
+```bash
+# Generate a bespoke itinerary
+curl -X POST http://localhost:3001/ai/plan \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "userId": "<user-id>",
+        "watcherFocus": "mixed",
+        "origin": "JFK",
+        "destination": "CDG",
+        "startDate": "2024-10-01",
+        "endDate": "2024-10-08",
+        "travelers": 2,
+        "styleTags": ["luxury", "food"],
+        "includeCashDeals": true,
+        "includePointsDeals": true
+      }'
+
+# Continue the conversation with the AI concierge
+curl -X POST http://localhost:3001/ai/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "userId": "<user-id>",
+        "sessionId": "<session-id-from-plan>",
+        "message": "Can you add a day trip to Champagne with points-friendly dining?"
+      }'
+
+# Let the vision model infer a location from imagery
+curl -X POST http://localhost:3001/ai/media/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "userId": "<user-id>",
+        "imageUrls": ["https://example.com/eiffel-night.jpg"]
+      }'
+```
+
 ## Available Commands
 
 ```bash
@@ -155,6 +201,7 @@ Please read our [Contributing Guide](docs/CONTRIBUTING.md) for details on code s
 - [Architecture](docs/ARCHITECTURE.md) - System design & decisions
 - [API Documentation](docs/API.md) - Endpoint specs
 - [Project Roadmap](PROJECT_PLAN.md) - Build sequence
+- [AI Feature Map](docs/ai_competitive_features.md) - Competitive differentiators & ideas
 
 ## License
 

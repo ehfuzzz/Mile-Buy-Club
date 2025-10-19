@@ -77,7 +77,9 @@ export class WatcherProcessor {
   async processWatcher(job: Job<WatcherJobData>): Promise<ProcessedDeal[]> {
     const { watcherId, userId, watcherType, searchParams, priority } = job.data;
 
-    this.logger.log(`Processing watcher ${watcherId} for user ${userId}`);
+    this.logger.log(
+      `Processing watcher ${watcherId} for user ${userId} with priority ${priority ?? 'normal'}`
+    );
 
     try {
       if (watcherType !== 'flight') {

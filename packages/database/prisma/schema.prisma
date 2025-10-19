@@ -45,6 +45,10 @@ model User {
   alerts        Alert[]
   savedDeals    SavedDeal[]
   trips         Trip[]
+  aiSessions    AiSession[]
+  tripPlans     TripPlan[]
+  mediaInsights MediaInsight[]
+  preference    UserPreference?
   
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -139,52 +143,98 @@ model UserLoyaltyProgram {
 }
 
 model CreditCard {
-  id            String    @id @default(cuid())
-  name          String
-  issuer        String
-  network       String    // visa, mastercard, amex, discover
-  category      String    // travel, cashback, premium, business
-  
-  // Benefits
-  signupBonus   String?
-  annualFee     Int?      // in cents
-  foreignFeeWaived Boolean?
-  
-  // CPP (cents per point)
-  flightCpp     Float?
-  hotelCpp      Float?
-  
-  // Relations
-  userCards     UserCreditCard[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  cardId          String   @id
+  issuer          String
+  network         String
+  productName     String
+  annualFeeUsd    Int
+  rewardsProgram  String
+  pointValueCents Float?
+  welcomeOffer    Json?
+  metadata        Json?
+  perks           Json?
+  protections     Json?
+  sourceOfTruthUrl String?
+  lastVerifiedUtc DateTime?
+
+  earnRates        CardEarnRate[]
+  credits          CardCreditDefinition[]
+  transferPartners CardTransferPartner[]
+  userCards        UserCreditCard[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([issuer])
   @@index([network])
+}
+
+model CardEarnRate {
+  id        String   @id @default(cuid())
+  cardId    String
+  category  String
+  rateX     Float
+  card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+}
+
+model CardCreditDefinition {
+  id                 String   @id @default(cuid())
+  creditId           String
+  cardId             String
+  title              String
+  type               String
+  amountCurrency     String
+  amountValue        Float
+  frequencyUnit      String
+  frequencyResetRule String
+  frequencyNYears    Int?
+  eligibility        Json?
+  recognition        Json?
+  card               CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([cardId])
+  @@index([creditId])
+}
+
+model CardTransferPartner {
+  id        String   @id @default(cuid())
+  cardId    String
+  partner   String
+  card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+  @@index([partner])
 }
 
 model UserCreditCard {
   id            String    @id @default(cuid())
   userId        String
   cardId        String
-  
+
   // Account details
   lastFourDigits String?
   expiryMonth   Int?
   expiryYear    Int?
-  
+
   // Status
   isActive      Boolean   @default(true)
   isPrimary     Boolean   @default(false)
-  
+
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  
+  card          CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   @@unique([userId, cardId])
   @@index([userId])
   @@index([cardId])
@@ -362,29 +412,199 @@ model Alert {
 model Trip {
   id            String    @id @default(cuid())
   userId        String
-  
+
   // Trip details
   name          String
   destination   String
   startDate     DateTime
   endDate       DateTime
-  
+
   // Trip info
   travelers     Int       @default(1)
   budget        Float?
   notes         String?
-  
+
   // Status
   status        String    @default("planning") // planning, booked, completed, cancelled
-  
+
   // Relations
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   @@index([userId])
   @@index([status])
+}
+
+// ============================================================================
+// AI & INTELLIGENT TRIP PLANNING
+// ============================================================================
+
+model TripPlan {
+  id            String   @id @default(cuid())
+  userId        String
+
+  // Metadata
+  title         String
+  summary       String?
+  origin        String?
+  destination   String?
+  startDate     DateTime?
+  endDate       DateTime?
+  travelers     Int?
+  budget        Float?
+  styleTags     String[] @default([])
+  llmModel      String?
+  plannerVersion String? @default("v1")
+
+  // Content
+  preferences   Json?
+  plan          Json?
+  insights      Json?
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  days          TripPlanDay[]
+  sessions      AiSession[]
+  mediaInsights MediaInsight[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([destination])
+  @@index([createdAt])
+}
+
+model TripPlanDay {
+  id            String   @id @default(cuid())
+  tripPlanId    String
+  dayNumber     Int
+  date          DateTime?
+  summary       String?
+  highlights    Json?
+  meals         Json?
+
+  // Relations
+  tripPlan      TripPlan @relation(fields: [tripPlanId], references: [id], onDelete: Cascade)
+  experiences   TripPlanExperience[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([tripPlanId, dayNumber])
+  @@index([tripPlanId])
+}
+
+model TripPlanExperience {
+  id            String   @id @default(cuid())
+  tripPlanDayId String
+
+  // Activity metadata
+  title         String
+  category      String
+  startTime     String?
+  endTime       String?
+  location      String?
+  latitude      Float?
+  longitude     Float?
+  price         Float?
+  currency      String?
+  bookingUrl    String?
+  notes         String?
+  metadata      Json?
+
+  // Relations
+  tripPlanDay   TripPlanDay @relation(fields: [tripPlanDayId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tripPlanDayId])
+}
+
+model AiSession {
+  id            String   @id @default(cuid())
+  userId        String
+  tripPlanId    String?
+  title         String?
+  model         String
+  persona       String?
+  mode          String   @default("assistant") // assistant, concierge, autopilot
+
+  // Context
+  temperature   Float?   @default(0.4)
+  tone          String?  @default("balanced")
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripPlan      TripPlan? @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
+  messages      AiMessage[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([tripPlanId])
+  @@index([createdAt])
+}
+
+model AiMessage {
+  id            String   @id @default(cuid())
+  sessionId     String
+  role          String
+  content       Json
+  tokens        Int?
+
+  // Relations
+  session       AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model MediaInsight {
+  id            String   @id @default(cuid())
+  userId        String
+  tripPlanId    String?
+  mediaType     String   // image, video
+  source        String?
+  prompt        String?
+  inference     Json
+  confidence    Float?
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripPlan      TripPlan? @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tripPlanId])
+  @@index([createdAt])
+}
+
+model UserPreference {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  travelStyles       String[] @default([])
+  accommodationStyle String?
+  diningPreferences  Json?
+  accessibilityNeeds Json?
+  pace               String?
+  averageBudget      Float?
+  favoriteAirlines   String[] @default([])
+  bucketList         Json?
+  updatedBy          String?
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 // ============================================================================
