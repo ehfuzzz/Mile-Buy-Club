@@ -76,6 +76,15 @@ mile-buy-club/
 - Turborepo
 - ESLint & Prettier
 
+### Flight Provider Capabilities
+
+The stack now supports both award searches _and_ cash fares:
+
+- **SeatsAero** and **Point.Me** surface real-time award inventory with miles, taxes/fees, and segment metadata. Each provider also publishes an estimated *points + cash* blend so travelers can see how much cash would be due if they offset a portion of the miles.
+- **Kiwi (Tequila API)** delivers paid inventory, including historically cheap cash fares, cabin data, and deep links for booking.
+
+Watcher jobs merge these sources into unified deals with detailed pricing options (award-only, points + cash, and full cash) so users without large mileage balances can still act on attractive bargains. Each watcher run now evaluates every pricing path independently and cross-checks seat availability—expired or sold-out itineraries are removed automatically so only live inventory triggers alerts.
+
 ## Available Commands
 
 ```bash

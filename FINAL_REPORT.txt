@@ -47,6 +47,12 @@ COMPLETED TASKS:
    - apps/api/src/jobs/alert-digest.processor.ts (daily/weekly digests)
    - apps/api/src/jobs/scheduler.service.ts (cron + load balancing)
 
+✅ FLIGHT DEAL PRICING ENHANCEMENTS
+   - Added Kiwi Tequila cash-fare provider with rate limiting & health checks
+   - SeatsAero/Point.Me mappings now emit award, cash, and points+cash pricing options alongside seat availability metadata
+   - Watcher processor now evaluates every pricing path separately, filters out sold-out inventory, and persists availability-aware deals to Prisma while expiring stale records
+   - Notifications/email templates highlight the pricing strategy (award, cash, or blend) and remaining seat counts for faster decisions
+
 ✅ SONNET TASK 23: Logging & Monitoring
    - packages/shared/src/logger.ts (Winston logger wrapper)
    - apps/api/src/common/middleware/logger.middleware.ts (request/response logging)

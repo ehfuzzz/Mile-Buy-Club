@@ -13,3 +13,6 @@ export * from './base/types';
 
 // Registry
 export { ProviderRegistry, providerRegistry } from './registry';
+
+// Concrete providers
+export * from './flights';

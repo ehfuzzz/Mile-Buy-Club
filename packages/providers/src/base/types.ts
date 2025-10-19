@@ -11,6 +11,8 @@ export enum ProviderType {
 export enum ProviderName {
   AMADEUS = 'amadeus',
   KIWI = 'kiwi',
+  SEATS_AERO = 'seats_aero',
+  POINT_ME = 'point_me',
   BOOKING = 'booking',
   EXPEDIA = 'expedia',
   VIATOR = 'viator',
@@ -62,6 +64,34 @@ export interface FlightSearch {
   cabin?: 'economy' | 'premium_economy' | 'business' | 'first';
 }
 
+export interface FlightSegment {
+  marketingCarrier: string;
+  operatingCarrier?: string;
+  flightNumber?: string;
+  origin: string;
+  destination: string;
+  departureTime: string;
+  arrivalTime: string;
+  aircraft?: string;
+  durationMinutes?: number;
+  cabin?: 'economy' | 'premium_economy' | 'business' | 'first';
+  fareClass?: string;
+}
+
+export type FlightPricingOptionType = 'award' | 'cash' | 'points_plus_cash';
+
+export interface FlightPricingOption {
+  type: FlightPricingOptionType;
+  cashAmount: number;
+  cashCurrency: string;
+  miles?: number;
+  pointsCurrency?: string;
+  provider: ProviderName;
+  bookingUrl?: string;
+  description?: string;
+  isEstimated?: boolean;
+}
+
 export interface Flight {
   id: string;
   provider: ProviderName;
@@ -71,6 +101,22 @@ export interface Flight {
   arrivalTime: string;
   price: number;
   currency: string;
+  airline?: string;
+  flightNumber?: string;
+  cabin?: 'economy' | 'premium_economy' | 'business' | 'first';
+  milesRequired?: number;
+  fareClass?: string;
+  bookingUrl?: string;
+  availability?: number;
+  taxes?: number;
+  fees?: number;
+  segments?: FlightSegment[];
+  cashPrice?: number;
+  cashCurrency?: string;
+  pointsCashPrice?: number;
+  pointsCashCurrency?: string;
+  pointsCashMiles?: number;
+  pricingOptions?: FlightPricingOption[];
 }
 
 export type FlightSearchParams = FlightSearch;
