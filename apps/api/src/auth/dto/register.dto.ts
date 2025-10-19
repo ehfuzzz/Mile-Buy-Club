@@ -5,12 +5,12 @@ export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'SecureP@ssw0rd!',
@@ -22,5 +22,5 @@ export class RegisterDto {
     message:
       'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)',
   })
-  password: string;
+  password!: string;
 }

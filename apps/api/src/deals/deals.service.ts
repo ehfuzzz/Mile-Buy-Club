@@ -200,7 +200,7 @@ export class DealsService {
     if (!raw || typeof raw !== 'object') {
       return null;
     }
-    return raw as Flight;
+    return raw as unknown as Flight;
   }
 
   private buildRoute(deal: Deal, raw: Flight | null): DealRouteView {

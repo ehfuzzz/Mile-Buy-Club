@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { createLogger } from '@mile/shared/src/logger';
+import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('AffiliateReporting');
 
@@ -159,9 +160,10 @@ export class ReportingService {
       return report;
     } catch (error) {
       logger.error('Failed to generate revenue report', {
-        error: error.message,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
-      throw error;
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 

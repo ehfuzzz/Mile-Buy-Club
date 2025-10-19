@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { createLogger, maskSensitiveData } from '@mile/shared/src/logger';
+import { RequestWithId } from '../types/request-with-id';
 
 const logger = createLogger('HTTP');
 
@@ -10,9 +11,9 @@ export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const requestId = uuidv4();
     const startTime = Date.now();
-    
+
     // Attach request ID to request
-    req['requestId'] = requestId;
+    (req as RequestWithId).requestId = requestId;
     
     // Log request
     logger.info('Incoming request', {
@@ -28,7 +29,7 @@ export class LoggerMiddleware implements NestMiddleware {
     res.on('finish', () => {
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 400 ? 'error' : 'info';
-      
+
       logger[logLevel]('Request completed', {
         requestId,
         method: req.method,

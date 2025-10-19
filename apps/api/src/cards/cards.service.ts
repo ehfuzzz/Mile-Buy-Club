@@ -7,6 +7,7 @@ import {
   CreditCard,
 } from '@mile/shared/src/card-engine';
 import { createLogger } from '@mile/shared/src/logger';
+import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('CardsService');
 
@@ -68,9 +69,10 @@ export class CardsService {
     } catch (error) {
       logger.error('Failed to generate recommendations', {
         userId,
-        error: error.message,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
-      throw error;
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 
@@ -107,9 +109,10 @@ export class CardsService {
     } catch (error) {
       logger.error('Failed to analyze portfolio', {
         userId,
-        error: error.message,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
-      throw error;
+      throw error instanceof Error ? error : new Error(getErrorMessage(error));
     }
   }
 
@@ -117,7 +120,7 @@ export class CardsService {
    * Get all available cards
    */
   async getAllCards(): Promise<CreditCard[]> {
-    const { default: cardDatabase } = await import('@mile/shared/src/card-engine');
+    const { cardDatabase } = await import('@mile/shared/src/card-engine');
     return (cardDatabase.cards as CreditCard[]).map((card) => ({
       ...card,
       id: card.cardId ?? card.id,
@@ -128,7 +131,7 @@ export class CardsService {
    * Get card details by ID
    */
   async getCardById(cardId: string): Promise<CreditCard> {
-    const { default: cardDatabase } = await import('@mile/shared/src/card-engine');
+    const { cardDatabase } = await import('@mile/shared/src/card-engine');
     const cards = cardDatabase.cards as CreditCard[];
     const card = cards.find((c) => (c.cardId ?? c.id) === cardId);
 
