@@ -236,8 +236,13 @@ export class DealsService {
     const id = deal.id ?? this.buildDealId(deal);
     const program = deal.program ?? deal.loyaltyProgram ?? 'Seats.aero';
     const provider = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
-    const departure = deal.departure ?? deal.segments?.[0]?.departure ?? null;
-    const arrival = deal.arrival ?? deal.segments?.[deal.segments.length - 1]?.arrival ?? null;
+    const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
+    const firstPartnerSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
+    const lastPartnerSegment =
+      partnerSegments.length > 0 ? partnerSegments[partnerSegments.length - 1] : undefined;
+
+    const departure = deal.departure ?? firstPartnerSegment?.departure ?? null;
+    const arrival = deal.arrival ?? lastPartnerSegment?.arrival ?? null;
     const miles = this.resolveMiles(deal);
     const cashDue = this.resolveCashDue(deal);
     const currency = deal.currency ?? deal.taxesCurrency ?? 'USD';
@@ -245,7 +250,7 @@ export class DealsService {
     const cpp = this.computeCpp(miles, cashDue);
     const score = this.computeScore(cpp, availability);
     const updatedAt = deal.updatedAt ?? new Date().toISOString();
-    const segments = this.mapSegments(deal.segments, deal.cabin ?? null);
+    const segments = this.mapSegments(partnerSegments, deal.cabin ?? null);
     const firstSegment = segments && segments.length > 0 ? segments[0] : undefined;
     const lastSegment = segments && segments.length > 0 ? segments[segments.length - 1] : undefined;
     const cabinSource = deal.cabin ?? firstSegment?.cabin ?? null;
@@ -307,9 +312,13 @@ export class DealsService {
   }
 
   private buildDealId(deal: SeatsAeroPartnerDeal): string {
-    const origin = deal.origin ?? deal.segments?.[0]?.origin ?? 'unknown';
-    const destination = deal.destination ?? deal.segments?.[deal.segments.length - 1]?.destination ?? 'unknown';
-    const departure = (deal.departure ?? deal.segments?.[0]?.departure ?? '').replace(/[^0-9A-Za-z]/g, '');
+    const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
+    const firstSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
+    const lastSegment = partnerSegments.length > 0 ? partnerSegments[partnerSegments.length - 1] : undefined;
+
+    const origin = deal.origin ?? firstSegment?.origin ?? 'unknown';
+    const destination = deal.destination ?? lastSegment?.destination ?? 'unknown';
+    const departure = (deal.departure ?? firstSegment?.departure ?? '').replace(/[^0-9A-Za-z]/g, '');
     const program = (deal.program ?? deal.loyaltyProgram ?? 'seats').replace(/\s+/g, '-').toLowerCase();
     return `${program}-${origin}-${destination}-${departure || Date.now()}`;
   }
