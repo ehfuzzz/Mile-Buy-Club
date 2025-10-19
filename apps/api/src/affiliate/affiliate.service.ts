@@ -169,8 +169,15 @@ export class AffiliateService {
     endDate: Date;
     groupBy?: 'provider' | 'network' | 'day';
   }): Promise<any> {
+    const { startDate, endDate, groupBy } = params;
+
     // TODO: Implement with actual Prisma aggregation
     const mockData = {
+      range: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        groupBy: groupBy ?? 'provider',
+      },
       totalClicks: 12456,
       totalConversions: 187,
       conversionRate: 0.015,
@@ -189,8 +196,12 @@ export class AffiliateService {
   /**
    * Get user's click history
    */
-  async getUserClickHistory(userId: string, limit: number = 50): Promise<any[]> {
+  async getUserClickHistory(
+    userId: string,
+    limit: number = 50
+  ): Promise<any[]> {
     try {
+      const resultLimit = Math.max(1, Math.min(limit, 500));
       // TODO: Replace with actual Prisma query
       // return await this.prisma.affiliateClick.findMany({
       //   where: { userId },
@@ -202,7 +213,7 @@ export class AffiliateService {
       //   },
       // });
 
-      return [];
+      return Array.from({ length: 0 }).slice(0, resultLimit);
     } catch (error) {
       logger.error('Failed to get user click history', {
         userId,

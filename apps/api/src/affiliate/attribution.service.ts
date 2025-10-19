@@ -41,6 +41,12 @@ export class AttributionService {
    */
   async getAttributionFromCookie(cookieValue: string): Promise<any | null> {
     try {
+      const attributionWindowMs =
+        ATTRIBUTION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+      logger.debug('Attribution lookup requested', {
+        cookieValue,
+        windowStart: new Date(Date.now() - attributionWindowMs).toISOString(),
+      });
       // TODO: Replace with actual Prisma query
       // const click = await this.prisma.affiliateClick.findFirst({
       //   where: {
@@ -106,8 +112,14 @@ export class AttributionService {
     endDate: Date;
     provider?: string;
   }): Promise<any> {
+    const { startDate, endDate, provider } = params;
     // TODO: Implement with Prisma aggregation
     return {
+      range: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        provider: provider ?? null,
+      },
       totalClicks: 0,
       totalConversions: 0,
       conversionRate: 0,
