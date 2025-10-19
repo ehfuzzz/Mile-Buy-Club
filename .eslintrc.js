@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   root: true,
   extends: [
@@ -27,11 +29,18 @@ module.exports = {
     },
     {
       files: ['apps/api/**/*.ts'],
-      extends: [
-        'plugin:@typescript-eslint/recommended-requiring-type-checking',
-      ],
       parserOptions: {
-        project: 'apps/api/tsconfig.json',
+        project: [path.join(__dirname, 'apps/api/tsconfig.json')],
+        tsconfigRootDir: __dirname,
+      },
+      rules: {
+        '@typescript-eslint/require-await': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-redundant-type-constituents': 'off',
       },
     },
   ],

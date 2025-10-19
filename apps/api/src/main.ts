@@ -35,6 +35,7 @@ async function bootstrap() {
     .addTag('users', 'User management')
     .addTag('auth', 'Authentication')
     .addTag('health', 'System health')
+    .addTag('ai', 'AI copilot for personalized travel planning')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

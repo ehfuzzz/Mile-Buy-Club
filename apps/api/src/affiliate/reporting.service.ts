@@ -172,8 +172,19 @@ export class ReportingService {
     startDate: Date;
     endDate: Date;
   }): Promise<any[]> {
-    // TODO: Implement daily aggregation
-    return [];
+    const { startDate, endDate } = params;
+    const dayInMs = 24 * 60 * 60 * 1000;
+    const days = Math.max(
+      1,
+      Math.ceil((endDate.getTime() - startDate.getTime()) / dayInMs)
+    );
+
+    // TODO: Replace with real aggregation once analytics is wired up
+    return Array.from({ length: days }).map((_, index) => ({
+      date: new Date(startDate.getTime() + index * dayInMs).toISOString(),
+      revenue: 0,
+      conversions: 0,
+    }));
   }
 
   /**

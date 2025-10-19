@@ -18,13 +18,14 @@ export class LoggingInterceptor implements NestInterceptor {
     const { method, url, body, user } = request;
     const requestId = request['requestId'];
     const timestamp = new Date().toISOString();
-    
+
     logger.debug('API call', {
       requestId,
       timestamp,
       method,
       url,
       userId: user?.id,
+      payloadSize: body ? JSON.stringify(body).length : 0,
     });
     
     return next.handle().pipe(

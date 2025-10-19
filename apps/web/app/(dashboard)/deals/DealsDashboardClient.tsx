@@ -28,7 +28,10 @@ export function DealsDashboardClient({ deals }: DealsDashboardClientProps) {
     return sortDeals(filtered, sort);
   }, [deals, filters, sort]);
 
-  const airlineOptions = useMemo(() => Array.from(new Set(deals.map((deal) => deal.route.airline))).sort(), [deals]);
+  const airlineOptions = useMemo(
+    () => Array.from(new Set(deals.map((deal) => deal.airline ?? deal.provider))).filter(Boolean).sort(),
+    [deals]
+  );
   const cabinOptions = ["Economy", "Premium", "Business", "First"];
 
   return (

@@ -1,69 +1,97 @@
-import { z } from "zod";
-import { computeUiScore } from "./ranking-preview";
+import { api } from "./api";
 
-export interface DealRoute {
-  origin: string;
-  destination: string;
-  departure: string;
-  arrival: string;
-  duration: string;
-  stops: number;
-  airline: string;
-  aircraft: string;
+export type DealPricingOptionType = "award" | "cash" | "points_plus_cash";
+
+export interface DealPricingOption {
+  type: DealPricingOptionType;
+  cashAmount?: number;
+  cashCurrency?: string;
+  miles?: number;
+  pointsCurrency?: string;
+  provider?: string;
+  bookingUrl?: string;
+  description?: string;
+  isEstimated?: boolean;
 }
 
 export interface DealPricing {
-  cashPrice: number;
-  milesRequired: number;
-  cpp: number;
-  savings: number;
+  primaryType: DealPricingOptionType;
+  price: number;
+  currency: string;
+  milesRequired: number | null;
+  cashPrice: number | null;
+  cashCurrency: string | null;
+  pointsCashPrice: number | null;
+  pointsCashCurrency: string | null;
+  pointsCashMiles: number | null;
+  options: DealPricingOption[];
 }
 
-export interface DealValue {
-  score: number;
-  rating: "excellent" | "good" | "fair" | "poor";
-  badges: string[];
-}
-
-export interface DealMetadata {
-  discoveredAt: string;
-  expiresAt?: string;
-  source: string;
-  affiliateUrl: string;
+export interface DealRoute {
+  origin: string | null;
+  destination: string | null;
+  departure: string | null;
+  arrival: string | null;
+  durationMinutes: number | null;
+  stops: number | null;
+  aircraft: string[] | null;
 }
 
 export interface Deal {
   id: string;
+  watcherId: string;
+  watcherName: string | null;
+  provider: string;
+  airline: string | null;
+  cabin: string | null;
   route: DealRoute;
+  availability: number | null;
+  score: number;
+  cpp: number | null;
+  value: number | null;
+  taxes: number | null;
   pricing: DealPricing;
-  value: DealValue;
-  metadata: DealMetadata;
+  bookingUrl: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
+  scoreBreakdown: Record<string, unknown> | null;
 }
 
-export const dealFilterSchema = z.object({
-  price: z.tuple([z.number().min(0), z.number().min(0)]),
-  miles: z.tuple([z.number().min(0), z.number().min(0)]),
-  cpp: z.tuple([z.number().min(0), z.number().min(0)]),
-  airlines: z.array(z.string()),
-  cabins: z.array(z.string()),
-  stops: z.union([z.literal("any"), z.literal("0"), z.literal("1"), z.literal("2+")]),
-  departureWindow: z.tuple([z.string(), z.string()]),
-  valueScore: z.number().min(0).max(100),
-  dateRange: z.tuple([z.string().nullable(), z.string().nullable()])
-});
+export interface DealsResponse {
+  deals: Deal[];
+  meta: {
+    total: number;
+    userId: string;
+    watcherCount: number;
+  };
+}
 
-export type DealFilterState = z.infer<typeof dealFilterSchema>;
+export const dealFilterSchema = {
+  price: [0, 5000] as [number, number],
+  miles: [0, 200000] as [number, number],
+  cpp: [0, 10] as [number, number],
+  airlines: [] as string[],
+  cabins: [] as string[],
+  stops: "any" as "any" | "0" | "1" | "2+",
+  departureWindow: ["00:00", "23:59"] as [string, string],
+  valueScore: 0,
+  dateRange: [null, null] as [string | null, string | null],
+};
+
+export type DealFilterState = typeof dealFilterSchema;
 
 export const DEFAULT_DEAL_FILTERS: DealFilterState = {
-  price: [0, 5000],
-  miles: [0, 200000],
-  cpp: [0, 10],
-  airlines: [],
-  cabins: [],
-  stops: "any",
-  departureWindow: ["00:00", "23:59"],
-  valueScore: 0,
-  dateRange: [null, null]
+  price: [...dealFilterSchema.price] as [number, number],
+  miles: [...dealFilterSchema.miles] as [number, number],
+  cpp: [...dealFilterSchema.cpp] as [number, number],
+  airlines: [...dealFilterSchema.airlines],
+  cabins: [...dealFilterSchema.cabins],
+  stops: dealFilterSchema.stops,
+  departureWindow: [...dealFilterSchema.departureWindow] as [string, string],
+  valueScore: dealFilterSchema.valueScore,
+  dateRange: [...dealFilterSchema.dateRange] as [string | null, string | null],
 };
 
 export type DealSortOption =
@@ -75,95 +103,74 @@ export type DealSortOption =
   | "age"
   | "airline";
 
-export interface DealViewState {
-  sort: DealSortOption;
-  view: "grid" | "list" | "compact";
+export async function fetchDeals(userId?: string): Promise<Deal[]> {
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : "";
+  const { success, data, error } = await api.get<DealsResponse>(`/deals${query}`);
+
+  if (!success || !data) {
+    throw new Error(error?.message ?? "Unable to load deals");
+  }
+
+  return data.deals;
 }
 
-export function generateMockDeals(): Deal[] {
-  const now = new Date();
-  return [
-    createMockDeal(1, now),
-    createMockDeal(2, now),
-    createMockDeal(3, now)
-  ];
-}
-
-function createMockDeal(index: number, now: Date): Deal {
-  const basePrice = 450 + index * 50;
-  const milesRequired = 35000 + index * 5000;
-  const cpp = Number(((basePrice / milesRequired) * 100).toFixed(2));
-  const score = computeUiScore({
-    price: basePrice,
-    cpp,
-    milesRequired,
-    cabin: index % 2 === 0 ? "business" : "economy",
-    airline: index % 2 === 0 ? "United" : "Delta",
-    createdAt: new Date(now.getTime() - index * 3600 * 1000)
-  });
-
-  return {
-    id: `deal-${index}`,
-    route: {
-      origin: "LAX",
-      destination: "JFK",
-      departure: new Date(now.getTime() + index * 3600 * 1000).toISOString(),
-      arrival: new Date(now.getTime() + (index * 3600 + 18000) * 1000).toISOString(),
-      duration: "05h 15m",
-      stops: index % 3,
-      airline: index % 2 === 0 ? "United" : "Delta",
-      aircraft: index % 2 === 0 ? "B787" : "A321"
-    },
-    pricing: {
-      cashPrice: basePrice,
-      milesRequired,
-      cpp,
-      savings: 320 + index * 20
-    },
-    value: {
-      score,
-      rating: score > 80 ? "excellent" : score > 60 ? "good" : score > 40 ? "fair" : "poor",
-      badges: score > 85 ? ["Hot Deal", "Limited Time"] : ["Solid Value"]
-    },
-    metadata: {
-      discoveredAt: new Date(now.getTime() - index * 3600 * 1000).toISOString(),
-      expiresAt: index % 2 === 0 ? new Date(now.getTime() + index * 7200 * 1000).toISOString() : undefined,
-      source: "Mile Buy Club",
-      affiliateUrl: "https://example.com/book"
-    }
-  };
-}
-
-export async function fetchDeals(): Promise<Deal[]> {
-  await new Promise((resolve) => setTimeout(resolve, 250));
-  return generateMockDeals();
-}
-
-export function applyDealFilters(deals: Deal[], filters: DealFilterState) {
+export function applyDealFilters(deals: Deal[], filters: DealFilterState): Deal[] {
   return deals.filter((deal) => {
-    const priceMatch = deal.pricing.cashPrice >= filters.price[0] && deal.pricing.cashPrice <= filters.price[1];
-    const milesMatch = deal.pricing.milesRequired >= filters.miles[0] && deal.pricing.milesRequired <= filters.miles[1];
-    const cppMatch = deal.pricing.cpp >= filters.cpp[0] && deal.pricing.cpp <= filters.cpp[1];
-    const scoreMatch = deal.value.score >= filters.valueScore;
-
-    const airlineMatch = filters.airlines.length === 0 || filters.airlines.includes(deal.route.airline);
-    const cabinMatch =
-      filters.cabins.length === 0 || filters.cabins.includes(deal.value.badges.includes("Hot Deal") ? "business" : "economy");
-
-    const stopsMatch =
-      filters.stops === "any" ||
-      (filters.stops === "0" && deal.route.stops === 0) ||
-      (filters.stops === "1" && deal.route.stops === 1) ||
-      (filters.stops === "2+" && deal.route.stops >= 2);
-
-    if (filters.dateRange[0] && new Date(deal.route.departure) < new Date(filters.dateRange[0]!)) {
-      return false;
-    }
-    if (filters.dateRange[1] && new Date(deal.route.departure) > new Date(filters.dateRange[1]!)) {
+    const price = deal.pricing.price;
+    if (price < filters.price[0] || price > filters.price[1]) {
       return false;
     }
 
-    return priceMatch && milesMatch && cppMatch && scoreMatch && airlineMatch && cabinMatch && stopsMatch;
+    const miles = resolveMiles(deal);
+    if (miles < filters.miles[0] || miles > filters.miles[1]) {
+      return false;
+    }
+
+    const cpp = deal.cpp ?? 0;
+    if (cpp < filters.cpp[0] || cpp > filters.cpp[1]) {
+      return false;
+    }
+
+    if (filters.airlines.length > 0) {
+      const airline = deal.airline ?? "";
+      if (!filters.airlines.includes(airline)) {
+        return false;
+      }
+    }
+
+    if (filters.cabins.length > 0) {
+      const cabin = (deal.cabin ?? "").toLowerCase();
+      if (!filters.cabins.includes(cabin)) {
+        return false;
+      }
+    }
+
+  if (filters.stops !== "any") {
+      const stops = deal.route.stops ?? 0;
+      if (filters.stops === "0" && stops !== 0) {
+        return false;
+      }
+      if (filters.stops === "1" && stops !== 1) {
+        return false;
+      }
+      if (filters.stops === "2+" && stops < 2) {
+        return false;
+      }
+    }
+
+    if (!matchesDepartureWindow(deal.route.departure, filters.departureWindow)) {
+      return false;
+    }
+
+    if (!matchesDateRange(deal.route.departure, filters.dateRange)) {
+      return false;
+    }
+
+    if (deal.score < filters.valueScore) {
+      return false;
+    }
+
+    return true;
   });
 }
 
@@ -172,21 +179,94 @@ export function sortDeals(deals: Deal[], sort: DealSortOption): Deal[] {
   sorted.sort((a, b) => {
     switch (sort) {
       case "lowest-price":
-        return a.pricing.cashPrice - b.pricing.cashPrice;
+        return a.pricing.price - b.pricing.price;
       case "highest-cpp":
-        return b.pricing.cpp - a.pricing.cpp;
+        return (b.cpp ?? 0) - (a.cpp ?? 0);
       case "fewest-miles":
-        return a.pricing.milesRequired - b.pricing.milesRequired;
+        return resolveMiles(a) - resolveMiles(b);
       case "departure":
-        return new Date(a.route.departure).getTime() - new Date(b.route.departure).getTime();
+        return getTime(a.route.departure) - getTime(b.route.departure);
       case "age":
-        return new Date(b.metadata.discoveredAt).getTime() - new Date(a.metadata.discoveredAt).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case "airline":
-        return a.route.airline.localeCompare(b.route.airline);
+        return (a.airline ?? "").localeCompare(b.airline ?? "");
       case "best":
       default:
-        return b.value.score - a.value.score;
+        return b.score - a.score;
     }
   });
   return sorted;
+}
+
+function resolveMiles(deal: Deal): number {
+  if (typeof deal.pricing.milesRequired === "number") {
+    return deal.pricing.milesRequired;
+  }
+
+  const awardOption = deal.pricing.options.find((option) => option.type === "award");
+  if (awardOption?.miles) {
+    return awardOption.miles;
+  }
+
+  const hybridOption = deal.pricing.options.find((option) => option.type === "points_plus_cash");
+  if (hybridOption?.miles) {
+    return hybridOption.miles;
+  }
+
+  return 0;
+}
+
+function matchesDepartureWindow(departure: string | null, [start, end]: [string, string]): boolean {
+  if (!departure) {
+    return true;
+  }
+  const date = new Date(departure);
+  if (Number.isNaN(date.getTime())) {
+    return true;
+  }
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
+  const time = hours * 60 + minutes;
+  const startMinutes = parseTime(start);
+  const endMinutes = parseTime(end);
+  return time >= startMinutes && time <= endMinutes;
+}
+
+function matchesDateRange(departure: string | null, [start, end]: [string | null, string | null]): boolean {
+  if (!departure) {
+    return true;
+  }
+  const time = new Date(departure).getTime();
+  if (Number.isNaN(time)) {
+    return true;
+  }
+
+  if (start) {
+    const startTime = new Date(start).getTime();
+    if (time < startTime) {
+      return false;
+    }
+  }
+
+  if (end) {
+    const endTime = new Date(end).getTime();
+    if (time > endTime) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function parseTime(value: string): number {
+  const [hours, minutes] = value.split(":").map((part) => Number(part));
+  return (hours || 0) * 60 + (minutes || 0);
+}
+
+function getTime(value: string | null): number {
+  if (!value) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
 }
