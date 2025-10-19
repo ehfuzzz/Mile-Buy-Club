@@ -13,6 +13,12 @@ interface WatcherCardProps {
 
 export function WatcherCard({ watcher, onPause, onResume, onDelete, onEdit }: WatcherCardProps) {
   const isPaused = watcher.status === "paused";
+  const lastRun = watcher.metrics.lastRunAt ? formatDistanceToNow(new Date(watcher.metrics.lastRunAt), { addSuffix: true }) : "Never";
+  const availabilityLabel =
+    watcher.metrics.availability !== null && watcher.metrics.availability !== undefined
+      ? `${watcher.metrics.availability} seats`
+      : "—";
+  const cabin = watcher.cabin ? watcher.cabin.replace(/_/g, " ") : "Any";
 
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -20,7 +26,7 @@ export function WatcherCard({ watcher, onPause, onResume, onDelete, onEdit }: Wa
         <div>
           <h3 className="text-lg font-semibold text-slate-900">{watcher.name}</h3>
           <p className="text-sm text-slate-500">
-            {watcher.route.origin} → {watcher.route.destination}
+            {(watcher.route.origin ?? "—").toUpperCase()} → {(watcher.route.destination ?? "—").toUpperCase()}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
@@ -36,52 +42,42 @@ export function WatcherCard({ watcher, onPause, onResume, onDelete, onEdit }: Wa
             {watcher.status}
           </span>
           <span className="text-slate-400">•</span>
-          <span className="text-slate-500">
-            Last run {formatDistanceToNow(new Date(watcher.performance.lastRun), { addSuffix: true })}
-          </span>
+          <span className="text-slate-500">Last run {lastRun}</span>
         </div>
       </div>
 
       <dl className="grid gap-4 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <dt className="font-medium text-slate-500">Cabin</dt>
-          <dd className="capitalize">{watcher.criteria.cabinClass}</dd>
+          <dd className="capitalize">{cabin}</dd>
         </div>
         <div>
           <dt className="font-medium text-slate-500">Price cap</dt>
-          <dd>${watcher.criteria.maxPrice.toLocaleString()}</dd>
+          <dd>{watcher.minScore.toFixed(0)} minimum score</dd>
         </div>
         <div>
           <dt className="font-medium text-slate-500">CPP threshold</dt>
-          <dd>{watcher.criteria.minCpp.toFixed(2)}¢</dd>
+          <dd>{watcher.passengers} passengers</dd>
         </div>
         <div>
           <dt className="font-medium text-slate-500">Deals found</dt>
-          <dd>{watcher.performance.dealsFound}</dd>
+          <dd>{watcher.metrics.dealsFound}</dd>
         </div>
       </dl>
 
       <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-        {watcher.criteria.airlines.length > 0 ? (
+        {watcher.airlines.length > 0 ? (
           <span className="rounded-full border border-slate-200 px-3 py-1">
-            Airlines: {watcher.criteria.airlines.join(", ")}
+            Airlines: {watcher.airlines.join(", ")}
           </span>
         ) : null}
-        {watcher.filters.departureTime.length > 0 ? (
-          <span className="rounded-full border border-slate-200 px-3 py-1">
-            Departure: {watcher.filters.departureTime.join(", ")}
-          </span>
-        ) : null}
-        {watcher.notifications.quietHours ? (
-          <span className="rounded-full border border-slate-200 px-3 py-1">
-            Quiet hours: {watcher.notifications.quietHours.start}–{watcher.notifications.quietHours.end}
-          </span>
-        ) : null}
+        <span className="rounded-full border border-slate-200 px-3 py-1">Availability: {availabilityLabel}</span>
+        <span className="rounded-full border border-slate-200 px-3 py-1">Frequency: {watcher.frequency}</span>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-slate-500">
-          Route window: {new Date(watcher.route.departureDate).toLocaleDateString()} → {watcher.route.returnDate ? new Date(watcher.route.returnDate).toLocaleDateString() : "Flexible"}
+          Route window: {watcher.route.departureDate ? new Date(watcher.route.departureDate).toLocaleDateString() : "Flexible"} → {watcher.route.returnDate ? new Date(watcher.route.returnDate).toLocaleDateString() : "Flexible"}
         </div>
         <div className="flex flex-wrap gap-2">
           <button

@@ -329,6 +329,9 @@ model Deal {
   status        String    @default("active") // active, expired, booked, hidden
   isNew         Boolean   @default(true)
 
+  // Raw provider payload
+  rawData       Json?
+
   // Relations
   watcher       Watcher   @relation(fields: [watcherId], references: [id], onDelete: Cascade)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)

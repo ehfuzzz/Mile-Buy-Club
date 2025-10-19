@@ -7,6 +7,8 @@ import { QueueModule } from './jobs/queue.module';
 import { ProvidersModule } from './providers/providers.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { DealsModule } from './deals/deals.module';
+import { WatchersModule } from './watchers/watchers.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { AiModule } from './ai/ai.module';
     AiModule,
     HealthModule,
     UsersModule,
+    DealsModule,
+    WatchersModule,
   ],
   controllers: [],
   providers: [],

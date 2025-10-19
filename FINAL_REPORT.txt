@@ -52,6 +52,7 @@ COMPLETED TASKS:
    - SeatsAero/Point.Me mappings now emit award, cash, and points+cash pricing options alongside seat availability metadata
    - Watcher processor now evaluates every pricing path separately, filters out sold-out inventory, and persists availability-aware deals to Prisma while expiring stale records
    - Notifications/email templates highlight the pricing strategy (award, cash, or blend) and remaining seat counts for faster decisions
+   - Next.js deal and watcher dashboards consume the new `/deals` and `/watchers` API responses so users see live departures, seat availability, and every pricing mix without relying on mock data
 
 ✅ AI COPILOT & MULTIMODAL TRAVEL INTELLIGENCE
    - Introduced a dedicated `AiModule` in the NestJS API with structured endpoints for planning (`POST /ai/plan`), conversational follow-up (`POST /ai/chat`), and photo/video intelligence (`POST /ai/media/analyze`).

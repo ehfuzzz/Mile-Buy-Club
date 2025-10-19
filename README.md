@@ -85,6 +85,11 @@ The stack now supports both award searches _and_ cash fares:
 
 Watcher jobs merge these sources into unified deals with detailed pricing options (award-only, points + cash, and full cash) so users without large mileage balances can still act on attractive bargains. Each watcher run now evaluates every pricing path independently and cross-checks seat availability—expired or sold-out itineraries are removed automatically so only live inventory triggers alerts.
 
+### Deal Dashboards
+
+- The Next.js watcher and deals dashboards now call the NestJS `/watchers` and `/deals` endpoints, replacing mock data with live inventory. Cards surface departure/arrival times, seat availability, and every pricing path (award, cash, and hybrid) returned by the providers.
+- Filters and sorting operate on the normalized backend schema, so cash fare searches, points-plus-cash bridges, and award redemptions can be reviewed side-by-side directly in the UI.
+
 ### AI Copilot & Vision-Powered Planning
 
 Mile Buy Club now ships an AI orchestration layer that rivals (and in many areas surpasses) assistants such as Layla.ai or Mindtrip:

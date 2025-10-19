@@ -8,11 +8,11 @@ export const metadata = {
 
 export default async function WatchersPage() {
   await requireAuth();
-  const watchers = await fetchWatchers();
+  const { watchers, stats, lastUpdated } = await fetchWatchers();
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-12 pt-6">
-      <WatchersDashboardClient initialWatchers={watchers} />
+      <WatchersDashboardClient initialWatchers={watchers} initialStats={stats} lastUpdated={lastUpdated} />
     </main>
   );
 }
