@@ -421,7 +421,7 @@ export class SeatsAeroPartnerService {
     });
 
     const payload = response.data ?? {};
-    const deals = this.extractDeals(payload).map((deal) => this.normalizeDeal(deal));
+    const deals = this.extractDeals(payload, program).map((deal) => this.normalizeDeal(deal));
 
     return deals.map((deal) => this.ensureDealProgram(deal, program));
   }
@@ -561,10 +561,15 @@ export class SeatsAeroPartnerService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
+  private extractDeals(
+    payload: SeatsAeroPartnerSearchResponse,
+    program: string,
+  ): SeatsAeroPartnerDeal[] {
     if (Array.isArray(payload.data)) {
       // Handle bulk availability format
-      return payload.data.map((availability: any) => this.mapAvailabilityToDeal(availability));
+      return payload.data.map((availability: any) =>
+        this.mapAvailabilityToDeal(availability, program),
+      );
     }
 
     if (Array.isArray(payload.results)) {
@@ -578,12 +583,18 @@ export class SeatsAeroPartnerService {
     return [];
   }
 
-  private mapAvailabilityToDeal(availability: any): SeatsAeroPartnerDeal {
+  private mapAvailabilityToDeal(
+    availability: any,
+    requestedProgram: string,
+  ): SeatsAeroPartnerDeal {
     const route = availability.Route || {};
     const cabin = this.determineBestCabin(availability);
     const miles = this.getMilesForCabin(availability, cabin);
     const taxes = this.getTaxesForCabin(availability, cabin);
     const seats = this.getSeatsForCabin(availability, cabin);
+
+    const normalizedProgram = requestedProgram || route.Source || 'unknown';
+    const airline = normalizedProgram;
 
     return {
       id: availability.ID,
@@ -591,11 +602,11 @@ export class SeatsAeroPartnerService {
       destination: route.DestinationAirport,
       departure: availability.Date,
       arrival: availability.Date, // Same day for now
-      airline: route.Source,
-      carrier: route.Source,
+      airline,
+      carrier: airline,
       cabin: cabin,
-      program: route.Source,
-      loyaltyProgram: route.Source,
+      program: normalizedProgram,
+      loyaltyProgram: normalizedProgram,
       miles: miles,
       points: miles,
       seats: seats,
@@ -616,8 +627,8 @@ export class SeatsAeroPartnerService {
       watcherId: 'seats-aero-bulk',
       watcherName: 'SeatsAero Bulk Availability',
       segments: [{
-        marketingCarrier: route.Source,
-        operatingCarrier: route.Source,
+        marketingCarrier: airline,
+        operatingCarrier: airline,
         origin: route.OriginAirport,
         destination: route.DestinationAirport,
         departure: availability.Date,
