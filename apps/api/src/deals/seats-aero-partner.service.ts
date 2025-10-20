@@ -148,6 +148,17 @@ export class SeatsAeroPartnerService {
   async search(options: SeatsAeroPartnerSearchOptions = {}): Promise<{
     deals: SeatsAeroPartnerDeal[];
     total: number;
+    meta: {
+      requestedPrograms: string[];
+      successfulPrograms: string[];
+      failedPrograms: string[];
+      aggregatedProgramCounts: Record<string, number>;
+      dedupedProgramCounts: Record<string, number>;
+      limitedProgramCounts: Record<string, number>;
+      aggregatedProgramSummary: string;
+      dedupedProgramSummary: string;
+      limitedProgramSummary: string;
+    };
   }> {
     const endpoint = options.origin && options.destination ? '/search' : '/availability';
     const normalizedPrograms = this.resolvePrograms(options);
@@ -243,7 +254,31 @@ export class SeatsAeroPartnerService {
       );
     }
 
-    return { deals: limitedDeals, total: dedupedDeals.length };
+    const requestedPrograms = [...normalizedPrograms];
+    const successfulPrograms = requestedPrograms.filter(
+      (program) => !failures.find((failure) => failure.program === program),
+    );
+    const failedPrograms = failures.map((failure) => failure.program);
+
+    const aggregatedProgramCounts = this.countDealsByProgram(aggregatedDeals);
+    const dedupedProgramCounts = this.countDealsByProgram(dedupedDeals);
+    const limitedProgramCounts = this.countDealsByProgram(limitedDeals);
+
+    return {
+      deals: limitedDeals,
+      total: dedupedDeals.length,
+      meta: {
+        requestedPrograms,
+        successfulPrograms,
+        failedPrograms,
+        aggregatedProgramCounts,
+        dedupedProgramCounts,
+        limitedProgramCounts,
+        aggregatedProgramSummary: this.formatProgramSummary(aggregatedDeals),
+        dedupedProgramSummary: this.formatProgramSummary(dedupedDeals),
+        limitedProgramSummary: this.formatProgramSummary(limitedDeals),
+      },
+    };
   }
 
   getDiagnostics() {
@@ -252,6 +287,11 @@ export class SeatsAeroPartnerService {
       configuredBaseUrl: this.rawBaseUrl ?? null,
       timeoutMs: this.timeoutMs,
       hasApiKey: Boolean(this.apiKey),
+      supportedPrograms: [...SEATS_AERO_PROGRAMS],
+      rateLimitInfo: {
+        recentMinuteRequests: this.recentMinuteRequests.length,
+        recentHourRequests: this.recentHourRequests.length,
+      },
     };
   }
 
@@ -261,13 +301,13 @@ export class SeatsAeroPartnerService {
       const requestUrl = this.resolveRequestUrl(axiosError);
 
       return {
-        type: 'axios',
+        type: 'axios_error',
+        status: axiosError.response?.status,
+        code: axiosError.code,
         message: axiosError.message,
-        code: axiosError.code ?? null,
-        status: axiosError.response?.status ?? null,
-        data: axiosError.response?.data ?? null,
-        requestUrl,
+        url: requestUrl,
         method: axiosError.config?.method ?? null,
+        data: axiosError.response?.data ?? null,
       };
     }
 
@@ -282,7 +322,14 @@ export class SeatsAeroPartnerService {
 
     return {
       type: 'unknown',
-      message: 'Unable to describe error',
+      value: String(error),
+    };
+  }
+
+  getProgramSummary(deals: SeatsAeroPartnerDeal[]) {
+    return {
+      counts: this.countDealsByProgram(deals),
+      summary: this.formatProgramSummary(deals),
     };
   }
 
@@ -416,6 +463,17 @@ export class SeatsAeroPartnerService {
       .sort((a, b) => b[1] - a[1])
       .map(([program, count]) => `${program}:${count}`)
       .join(', ');
+  }
+
+  private countDealsByProgram(deals: SeatsAeroPartnerDeal[]): Record<string, number> {
+    const counts: Record<string, number> = {};
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts[program] = (counts[program] ?? 0) + 1;
+    }
+
+    return counts;
   }
 
   private buildDealKey(deal: SeatsAeroPartnerDeal): string {
