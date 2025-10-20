@@ -351,6 +351,26 @@ model Deal {
   @@unique([watcherId, provider, externalId])
 }
 
+model SeatsAeroDeal {
+  id            String   @id @default(cuid())
+  externalId    String   @unique
+  airline       String
+  program       String
+  origin        String
+  destination   String
+  departureDate DateTime?
+  cabin         String?
+  miles         Int?
+  cashPrice     Decimal?
+  bookingUrl    String?
+  rawData       Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  expiresAt     DateTime?
+
+  @@map("seats_aero_deals")
+}
+
 model SavedDeal {
   id            String    @id @default(cuid())
   userId        String

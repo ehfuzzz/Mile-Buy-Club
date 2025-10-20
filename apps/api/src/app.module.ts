@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { ProvidersModule } from './providers/providers.module';
 import { DealsModule } from './deals/deals.module';
+import { DataCollectionModule } from './data-collection/data-collection.module';
 import { FlightSearchModule } from './flight-search/flight-search.module';
 import { SeedModule } from './seed/seed.module';
 
@@ -19,6 +20,7 @@ import { SeedModule } from './seed/seed.module';
     HealthModule,
     UsersModule,
     DealsModule,
+    DataCollectionModule,
     FlightSearchModule,
     SeedModule,
   ],
