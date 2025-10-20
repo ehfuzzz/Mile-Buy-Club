@@ -217,11 +217,27 @@ export class DealsService {
   ): Promise<DealsListResponse> {
     const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
 
+    const requestedProgramsLog = Array.isArray(programs) && programs.length > 0
+      ? programs.join(', ')
+      : 'default (all configured)';
+
+    this.logger.debug(
+      `Requesting SeatsAero live deals: take=${take}, programs=${requestedProgramsLog}`,
+    );
+
     try {
       const { deals: liveDeals } = await this.seatsAeroPartnerService.search({
         take,
         programs,
       });
+
+      const programSummary = this.seatsAeroPartnerService.getProgramSummary(liveDeals);
+      this.logger.debug(
+        `Received ${liveDeals.length} SeatsAero live deals (program summary: ${
+          programSummary.summary || 'none'
+        })`,
+      );
+
       const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
       const watcherCount =
         mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;
@@ -298,7 +314,12 @@ export class DealsService {
   private mapPartnerDeal(deal: SeatsAeroPartnerDeal): DealView {
     const id = deal.id ?? this.buildDealId(deal);
     const program = deal.program ?? deal.loyaltyProgram ?? 'Seats.aero';
-    const provider = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
+    const providerLabel = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
+    this.logger.debug(
+      `Mapping SeatsAero partner deal ${id}: airline=${deal.airline ?? 'unknown'}, program=${
+        deal.program ?? deal.loyaltyProgram ?? 'unknown'
+      }, origin=${deal.origin ?? 'unknown'}, destination=${deal.destination ?? 'unknown'}`,
+    );
     const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
     const firstPartnerSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
     const lastPartnerSegment =
@@ -323,7 +344,7 @@ export class DealsService {
       id,
       watcherId: deal.watcherId ?? 'seats-aero-live',
       watcherName: deal.watcherName ?? program,
-      provider: 'SEATS_AERO',
+      provider: providerLabel,
       airline: deal.airline ?? deal.carrier ?? firstSegment?.marketingCarrier ?? null,
       cabin: normalizedCabin,
       route: {
@@ -356,7 +377,7 @@ export class DealsService {
             miles: miles ?? undefined,
             cashAmount: cashDue ?? undefined,
             cashCurrency: currency,
-            provider,
+            provider: providerLabel,
             bookingUrl: deal.bookingUrl,
             description: program ? `Book via ${program}` : undefined,
           },
