@@ -210,11 +210,18 @@ export class DealsService {
     return fallback.id;
   }
 
-  async listDeals(userId?: string, limit = 100): Promise<DealsListResponse> {
+  async listDeals(
+    userId?: string,
+    limit = 100,
+    programs?: string[],
+  ): Promise<DealsListResponse> {
     const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
 
     try {
-      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({ take });
+      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({
+        take,
+        programs,
+      });
       const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
       const watcherCount =
         mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;

@@ -22,8 +22,24 @@ export class WatchersController {
   @ApiOperation({ summary: 'List deals across all watchers' })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  async listDeals(@Query('userId') userId?: string, @Query('limit') limit?: string) {
+  @ApiQuery({
+    name: 'programs',
+    required: false,
+    description: 'Comma-separated list of loyalty programs to query (defaults to all)',
+  })
+  async listDeals(
+    @Query('userId') userId?: string,
+    @Query('limit') limit?: string,
+    @Query('programs') programs?: string,
+  ) {
     const take = limit ? Number(limit) : undefined;
-    return this.dealsService.listDeals(userId, take);
+    const programList = programs
+      ? programs
+          .split(',')
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0)
+      : undefined;
+
+    return this.dealsService.listDeals(userId, take, programList);
   }
 }
