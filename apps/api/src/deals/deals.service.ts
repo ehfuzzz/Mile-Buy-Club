@@ -217,11 +217,27 @@ export class DealsService {
   ): Promise<DealsListResponse> {
     const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
 
+    const requestedProgramsLog = Array.isArray(programs) && programs.length > 0
+      ? programs.join(', ')
+      : 'default (all configured)';
+
+    this.logger.debug(
+      `Requesting SeatsAero live deals: take=${take}, programs=${requestedProgramsLog}`,
+    );
+
     try {
       const { deals: liveDeals } = await this.seatsAeroPartnerService.search({
         take,
         programs,
       });
+
+      const programSummary = this.seatsAeroPartnerService.getProgramSummary(liveDeals);
+      this.logger.debug(
+        `Received ${liveDeals.length} SeatsAero live deals (program summary: ${
+          programSummary.summary || 'none'
+        })`,
+      );
+
       const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
       const watcherCount =
         mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;
@@ -298,7 +314,12 @@ export class DealsService {
   private mapPartnerDeal(deal: SeatsAeroPartnerDeal): DealView {
     const id = deal.id ?? this.buildDealId(deal);
     const program = deal.program ?? deal.loyaltyProgram ?? 'Seats.aero';
-    const provider = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
+    const providerLabel = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
+    this.logger.debug(
+      `Mapping SeatsAero partner deal ${id}: airline=${deal.airline ?? 'unknown'}, program=${
+        deal.program ?? deal.loyaltyProgram ?? 'unknown'
+      }, origin=${deal.origin ?? 'unknown'}, destination=${deal.destination ?? 'unknown'}`,
+    );
     const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
     const firstPartnerSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
     const lastPartnerSegment =
@@ -323,7 +344,7 @@ export class DealsService {
       id,
       watcherId: deal.watcherId ?? 'seats-aero-live',
       watcherName: deal.watcherName ?? program,
-      provider: 'SEATS_AERO',
+      provider: providerLabel,
       airline: deal.airline ?? deal.carrier ?? firstSegment?.marketingCarrier ?? null,
       cabin: normalizedCabin,
       route: {
@@ -356,7 +377,7 @@ export class DealsService {
             miles: miles ?? undefined,
             cashAmount: cashDue ?? undefined,
             cashCurrency: currency,
-            provider,
+            provider: providerLabel,
             bookingUrl: deal.bookingUrl,
             description: program ? `Book via ${program}` : undefined,
           },
@@ -632,28 +653,56 @@ export class DealsService {
   }
 
   async debugSeatsAero() {
-    const diagnostics = this.seatsAeroPartnerService.getDiagnostics();
-    const params = { take: 1 };
+    const initialDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
+    const params = { take: 20 };
 
     try {
       const result = await this.seatsAeroPartnerService.search(params);
+      const finalDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
+
       return {
         success: true,
         message: 'SeatsAero service working',
         deals: result.deals,
         total: result.total,
-        diagnostics,
+        diagnostics: {
+          before: initialDiagnostics,
+          after: finalDiagnostics,
+        },
+        programs: {
+          requested: result.meta.requestedPrograms,
+          successful: result.meta.successfulPrograms,
+          failed: result.meta.failedPrograms,
+        },
+        summaries: {
+          aggregated: {
+            counts: result.meta.aggregatedProgramCounts,
+            summary: result.meta.aggregatedProgramSummary,
+          },
+          deduped: {
+            counts: result.meta.dedupedProgramCounts,
+            summary: result.meta.dedupedProgramSummary,
+          },
+          limited: {
+            counts: result.meta.limitedProgramCounts,
+            summary: result.meta.limitedProgramSummary,
+          },
+        },
       };
     } catch (error) {
       const underlying =
         error instanceof Error && 'cause' in error && (error as Error & { cause?: unknown }).cause
           ? (error as Error & { cause?: unknown }).cause
           : error;
+      const finalDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
 
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',
-        diagnostics,
+        diagnostics: {
+          before: initialDiagnostics,
+          after: finalDiagnostics,
+        },
         attemptedParams: params,
         error: this.seatsAeroPartnerService.describeError(underlying),
       };
