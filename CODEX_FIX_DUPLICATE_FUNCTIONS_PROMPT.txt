@@ -1,0 +1,65 @@
+Fix SeatsAero Service Duplicate Function Errors and Multi-Airline Issues
+
+CRITICAL ISSUES TO FIX:
+
+1. **TypeScript Compilation Errors:**
+The SeatsAeroPartnerService has duplicate function implementations causing build failures:
+- `getDiagnostics()` is duplicated at lines 227 and 449
+- `describeError(error: unknown)` is duplicated at lines 236 and 458
+
+Error messages:
+```
+src/deals/seats-aero-partner.service.ts:227:3 - error TS2393: Duplicate function implementation.
+src/deals/seats-aero-partner.service.ts:236:3 - error TS2393: Duplicate function implementation.
+src/deals/seats-aero-partner.service.ts:449:3 - error TS2393: Duplicate function implementation.
+src/deals/seats-aero-partner.service.ts:458:3 - error TS2393: Duplicate function implementation.
+```
+
+2. **Multi-Airline Implementation Not Working:**
+Despite implementing multi-airline support, the `/deals` endpoint only returns United Airlines flights.
+
+Current behavior:
+- API returns only United flights even with multi-airline code
+- Direct SeatsAero API calls work for other airlines (American, Delta, etc.)
+- Backend implementation appears correct but execution fails
+
+REQUIRED FIXES:
+
+1. **Remove Duplicate Functions:**
+- Delete duplicate `getDiagnostics()` method (keep only one)
+- Delete duplicate `describeError()` method (keep only one)
+- Ensure the service compiles without TypeScript errors
+
+2. **Debug Multi-Airline Issue:**
+- Check if the multi-program iteration is actually executing
+- Verify that API calls are being made for all programs
+- Ensure error handling isn't silently failing for other airlines
+- Add proper logging to see which programs are being called and their results
+
+3. **Verify Implementation:**
+- Confirm that `SEATS_AERO_PROGRAMS` array is being used correctly
+- Check that `fetchDealsForProgram()` is being called for each airline
+- Ensure rate limiting isn't blocking other airlines
+- Verify that results are being properly aggregated
+
+EXPECTED BEHAVIOR AFTER FIX:
+- TypeScript compilation succeeds without errors
+- `/deals` endpoint returns flights from multiple airlines (American, Delta, United, etc.)
+- Debug endpoint shows multiple airlines in results
+- Backend logs show API calls to different airlines
+
+TESTING COMMANDS:
+```bash
+# Should return flights from multiple airlines
+curl "http://localhost:3001/deals?limit=10"
+
+# Should show multiple airlines in results
+curl "http://localhost:3001/deals?limit=20" | jq '.deals[] | .airline' | sort | uniq -c
+
+# Debug endpoint should show multiple airlines
+curl "http://localhost:3001/deals/debug"
+```
+
+PRIORITY: CRITICAL - The backend won't compile due to duplicate functions, and the multi-airline feature isn't working despite being implemented.
+
+The goal is to fix the compilation errors and ensure the multi-airline SeatsAero integration actually returns flights from all available airlines, not just United.
