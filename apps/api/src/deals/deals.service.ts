@@ -318,7 +318,9 @@ export class DealsService {
     this.logger.debug(
       `Mapping SeatsAero partner deal ${id}: airline=${deal.airline ?? 'unknown'}, program=${
         deal.program ?? deal.loyaltyProgram ?? 'unknown'
-      }, origin=${deal.origin ?? 'unknown'}, destination=${deal.destination ?? 'unknown'}`,
+      }, provider=${providerLabel}, origin=${deal.origin ?? 'unknown'}, destination=${
+        deal.destination ?? 'unknown'
+      }`,
     );
     const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
     const firstPartnerSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
@@ -333,7 +335,16 @@ export class DealsService {
     const availability = this.resolveAvailability(deal);
     const cpp = this.computeCpp(miles, cashDue);
     const score = this.computeScore(cpp, availability);
-    const updatedAt = deal.updatedAt ?? new Date().toISOString();
+    const now = new Date();
+    const createdAtDate =
+      this.normalizeDateValue(deal.createdAt) ??
+      this.normalizeDateValue(deal.updatedAt) ??
+      now;
+    const updatedAtDate = this.normalizeDateValue(deal.updatedAt) ?? createdAtDate;
+    const expiresAtDate = this.normalizeDateValue(deal.expiresAt);
+    const createdAt = createdAtDate.toISOString();
+    const updatedAt = updatedAtDate.toISOString();
+    const expiresAt = expiresAtDate ? expiresAtDate.toISOString() : null;
     const segments = this.mapSegments(partnerSegments, deal.cabin ?? null);
     const firstSegment = segments && segments.length > 0 ? segments[0] : undefined;
     const lastSegment = segments && segments.length > 0 ? segments[segments.length - 1] : undefined;
@@ -385,9 +396,9 @@ export class DealsService {
       },
       bookingUrl: deal.bookingUrl ?? null,
       status: 'active',
-      createdAt: deal.createdAt ?? updatedAt,
+      createdAt,
       updatedAt,
-      expiresAt: deal.expiresAt ?? null,
+      expiresAt,
       scoreBreakdown: {
         cpp,
         availability,
@@ -569,6 +580,25 @@ export class DealsService {
       expiresAt: deal.expiresAt ? deal.expiresAt.toISOString() : null,
       scoreBreakdown: this.normalizeRecord(deal.scoreBreakdown),
     };
+  }
+
+  private normalizeDateValue(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    return null;
   }
 
   private parseRawFlight(raw: JsonValue | null): Flight | null {
