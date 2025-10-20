@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 
 export interface SeatsAeroPartnerSegment {
   marketingCarrier?: string;
@@ -74,32 +74,41 @@ interface SeatsAeroPartnerSearchOptions {
 export class SeatsAeroPartnerService {
   private readonly logger = new Logger(SeatsAeroPartnerService.name);
   private readonly http: AxiosInstance;
+  private readonly apiKey: string;
+  private readonly rawBaseUrl: string | undefined;
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey =
+    this.apiKey =
       this.configService.get<string>('SEATS_AERO_PARTNER_API_KEY') ||
       this.configService.get<string>('SEATS_AERO_API_KEY') ||
       'pro_34GoHwfqK5fP3esJgqAhxv4cOmj';
 
-    if (!apiKey) {
+    if (!this.apiKey) {
       throw new Error('SeatsAero API key is required to fetch live deals');
     }
 
-    const baseUrl =
+    this.rawBaseUrl =
       this.configService.get<string>('SEATS_AERO_PARTNER_BASE_URL') ||
       this.configService.get<string>('SEATS_AERO_BASE_URL') ||
-      'https://seats.aero/partnerapi';
+      undefined;
 
-    const timeout = Number(this.configService.get<string>('SEATS_AERO_TIMEOUT_MS'));
+    this.baseUrl = this.normalizeBaseUrl(this.rawBaseUrl);
+
+    const timeout = this.configService.get<string>('SEATS_AERO_TIMEOUT_MS');
+    this.timeoutMs = this.resolveTimeout(timeout);
 
     this.http = axios.create({
-      baseURL: baseUrl.replace(/\/$/, ''),
-      timeout: Number.isFinite(timeout) && timeout > 0 ? timeout : 20000,
+      baseURL: this.baseUrl,
+      timeout: this.timeoutMs,
       headers: {
-        'Partner-Authorization': apiKey,
+        'Partner-Authorization': this.apiKey,
         Accept: 'application/json',
       },
     });
+
+    this.logger.log(`SeatsAero partner API configured with base URL ${this.baseUrl}`);
   }
 
   async search(options: SeatsAeroPartnerSearchOptions = {}): Promise<{
@@ -143,9 +152,50 @@ export class SeatsAeroPartnerService {
 
       return { deals, total };
     } catch (error) {
-      this.logger.error('Failed to fetch SeatsAero live deals', error as Error);
-      throw error;
+      const normalizedError = this.normalizeAxiosError(error);
+      this.logger.error('Failed to fetch SeatsAero live deals', normalizedError);
+      throw normalizedError;
     }
+  }
+
+  getDiagnostics() {
+    return {
+      baseUrl: this.baseUrl,
+      configuredBaseUrl: this.rawBaseUrl ?? null,
+      timeoutMs: this.timeoutMs,
+      hasApiKey: Boolean(this.apiKey),
+    };
+  }
+
+  describeError(error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const requestUrl = this.resolveRequestUrl(axiosError);
+
+      return {
+        type: 'axios',
+        message: axiosError.message,
+        code: axiosError.code ?? null,
+        status: axiosError.response?.status ?? null,
+        data: axiosError.response?.data ?? null,
+        requestUrl,
+        method: axiosError.config?.method ?? null,
+      };
+    }
+
+    if (error instanceof Error) {
+      return {
+        type: 'error',
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      };
+    }
+
+    return {
+      type: 'unknown',
+      message: 'Unable to describe error',
+    };
   }
 
   private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
@@ -303,5 +353,109 @@ export class SeatsAeroPartnerService {
     else if (taxes < 1000) score += 5;
     
     return Math.min(100, score);
+  }
+
+  private normalizeBaseUrl(value: string | undefined): string {
+    const fallback = 'https://seats.aero/partnerapi';
+    if (!value || !value.trim()) {
+      return fallback;
+    }
+
+    const trimmed = value.trim();
+    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+    try {
+      const url = new URL(withProtocol);
+
+      if (url.hostname === 'api.seats.aero') {
+        url.hostname = 'seats.aero';
+      }
+
+      const sanitizedPath = url.pathname.replace(/\/(availability|search)$/i, '').replace(/\/+$/, '');
+
+      if (!sanitizedPath || sanitizedPath === '/') {
+        url.pathname = '/partnerapi';
+      } else if (/partnerapi$/i.test(sanitizedPath)) {
+        url.pathname = sanitizedPath.startsWith('/') ? sanitizedPath : `/${sanitizedPath}`;
+      } else if (/partnerapi/i.test(sanitizedPath)) {
+        const index = sanitizedPath.toLowerCase().lastIndexOf('partnerapi');
+        const basePath = sanitizedPath.slice(0, index + 'partnerapi'.length);
+        url.pathname = basePath.startsWith('/') ? basePath : `/${basePath}`;
+      } else {
+        this.logger.warn(
+          `Unrecognised SeatsAero base URL path "${sanitizedPath}". Falling back to default partner endpoint.`,
+        );
+        url.pathname = '/partnerapi';
+      }
+
+      url.pathname = url.pathname.replace(/\/+$/, '');
+      return `${url.origin}${url.pathname}`;
+    } catch (error) {
+      this.logger.warn(
+        `Invalid SeatsAero base URL "${value}". Falling back to default partner endpoint.`,
+        error instanceof Error ? error : undefined,
+      );
+      return fallback;
+    }
+  }
+
+  private resolveTimeout(value: string | undefined): number {
+    if (!value) {
+      return 20000;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      this.logger.warn(`Invalid SeatsAero timeout "${value}". Falling back to 20000ms.`);
+      return 20000;
+    }
+
+    return parsed;
+  }
+
+  private normalizeAxiosError(error: unknown): Error {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const status = axiosError.response?.status;
+      const code = axiosError.code ?? 'ERR_UNKNOWN';
+      const requestUrl = this.resolveRequestUrl(axiosError);
+      const messageParts = [`SeatsAero request failed (${code}`];
+
+      if (status) {
+        messageParts[0] += `, status ${status}`;
+      }
+
+      messageParts[0] += ')';
+
+      if (requestUrl) {
+        messageParts.push(`URL: ${requestUrl}`);
+      }
+
+      const message = messageParts.join(' - ');
+      const wrappedError = new Error(message);
+      (wrappedError as Error & { cause?: unknown }).cause = error;
+      return wrappedError;
+    }
+
+    if (error instanceof Error) {
+      return error;
+    }
+
+    return new Error('SeatsAero request failed with an unknown error');
+  }
+
+  private resolveRequestUrl(error: AxiosError): string | null {
+    const { baseURL, url } = error.config ?? {};
+
+    if (baseURL || url) {
+      try {
+        const finalUrl = new URL(url ?? '', baseURL ?? this.baseUrl);
+        return finalUrl.toString();
+      } catch (err) {
+        this.logger.debug('Failed to resolve SeatsAero request URL from error config', err as Error);
+      }
+    }
+
+    return null;
   }
 }
