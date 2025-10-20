@@ -195,6 +195,10 @@ export class SeatsAeroPartnerService {
       }
     }
 
+    this.logger.debug(
+      `SeatsAero base params for ${endpoint.replace('/', '')} request: ${JSON.stringify(baseParams)}`,
+    );
+
     const aggregatedDeals: SeatsAeroPartnerDeal[] = [];
     const failures: { program: string; error: unknown }[] = [];
 
@@ -347,6 +351,16 @@ export class SeatsAeroPartnerService {
   private resolvePrograms(options: SeatsAeroPartnerSearchOptions): string[] {
     const normalized: string[] = [];
 
+    const requestedPrograms = Array.isArray(options.programs)
+      ? options.programs.filter((value) => typeof value === 'string')
+      : undefined;
+
+    this.logger.debug(
+      `SeatsAero resolving programs from options: program=${options.program ?? 'none'}, programs=${
+        requestedPrograms ? requestedPrograms.join(', ') : 'none'
+      }`,
+    );
+
     const fromOptions = [
       ...(options.program ? [options.program] : []),
       ...(Array.isArray(options.programs) ? options.programs : []),
@@ -360,9 +374,15 @@ export class SeatsAeroPartnerService {
     }
 
     if (normalized.length > 0) {
+      this.logger.debug(
+        `SeatsAero resolvePrograms resolved explicit programs: ${normalized.join(', ')}`,
+      );
       return normalized;
     }
 
+    this.logger.debug(
+      `SeatsAero resolvePrograms defaulting to all configured programs (${SEATS_AERO_PROGRAMS.length})`,
+    );
     return [...SEATS_AERO_PROGRAMS];
   }
 
@@ -416,12 +436,44 @@ export class SeatsAeroPartnerService {
 
     await this.enforceRateLimits();
 
+    const startedAt = Date.now();
+
     const response = await this.http.get<SeatsAeroPartnerSearchResponse>(endpoint, {
       params: queryParams,
     });
 
     const payload = response.data ?? {};
+    const payloadSummary = {
+      keys: Object.keys(payload ?? {}),
+      dataCount: Array.isArray(payload.data) ? payload.data.length : undefined,
+      resultsCount: Array.isArray(payload.results) ? payload.results.length : undefined,
+      availabilityCount: Array.isArray(payload.availability) ? payload.availability.length : undefined,
+      metaTotal: payload?.meta?.total ?? null,
+    };
+
+    this.logger.debug(
+      `SeatsAero ${endpoint.replace('/', '')} response for program ${program} (status=${
+        response.status
+      }, durationMs=${Date.now() - startedAt}): ${JSON.stringify(payloadSummary)}`,
+    );
+
     const deals = this.extractDeals(payload, program).map((deal) => this.normalizeDeal(deal));
+
+    if (deals.length === 0) {
+      this.logger.debug(`SeatsAero program ${program} produced no normalized deals`);
+    } else {
+      const sample = deals.slice(0, 3).map((deal) => ({
+        id: deal.id ?? null,
+        origin: deal.origin ?? null,
+        destination: deal.destination ?? null,
+        airline: deal.airline ?? null,
+        program: deal.program ?? null,
+        loyaltyProgram: deal.loyaltyProgram ?? null,
+      }));
+      this.logger.debug(
+        `SeatsAero program ${program} normalized ${deals.length} deal(s); sample=${JSON.stringify(sample)}`,
+      );
+    }
 
     return deals.map((deal) => this.ensureDealProgram(deal, program));
   }
@@ -547,6 +599,11 @@ export class SeatsAeroPartnerService {
         : 0;
       const waitMs = Math.max(waitForMinute, waitForHour, 50);
 
+      this.logger.debug(
+        `SeatsAero rate limit reached. Waiting ${waitMs}ms (minuteExceeded=${minuteExceeded}, ` +
+          `minuteCount=${this.recentMinuteRequests.length}, hourExceeded=${hourExceeded}, hourCount=${this.recentHourRequests.length})`,
+      );
+
       await this.delay(waitMs);
     }
   }
@@ -565,6 +622,17 @@ export class SeatsAeroPartnerService {
     payload: SeatsAeroPartnerSearchResponse,
     program: string,
   ): SeatsAeroPartnerDeal[] {
+    const summary = {
+      keys: Object.keys(payload ?? {}),
+      dataCount: Array.isArray(payload.data) ? payload.data.length : undefined,
+      resultsCount: Array.isArray(payload.results) ? payload.results.length : undefined,
+      availabilityCount: Array.isArray(payload.availability) ? payload.availability.length : undefined,
+    };
+
+    this.logger.debug(
+      `SeatsAero extractDeals summary for program ${program}: ${JSON.stringify(summary)}`,
+    );
+
     if (Array.isArray(payload.data)) {
       // Handle bulk availability format
       return payload.data.map((availability: any) =>
@@ -595,6 +663,13 @@ export class SeatsAeroPartnerService {
 
     const normalizedProgram = requestedProgram || route.Source || 'unknown';
     const airline = normalizedProgram;
+
+    this.logger.debug(
+      `SeatsAero mapping availability ${availability?.ID ?? 'unknown'} for program ${requestedProgram}: ` +
+        `origin=${route.OriginAirport ?? availability?.Origin ?? null}, ` +
+        `destination=${route.DestinationAirport ?? availability?.Destination ?? null}, ` +
+        `cabin=${cabin}, miles=${miles}, seats=${seats}`,
+    );
 
     return {
       id: availability.ID,
