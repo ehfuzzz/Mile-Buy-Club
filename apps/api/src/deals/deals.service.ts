@@ -632,28 +632,56 @@ export class DealsService {
   }
 
   async debugSeatsAero() {
-    const diagnostics = this.seatsAeroPartnerService.getDiagnostics();
-    const params = { take: 1 };
+    const initialDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
+    const params = { take: 20 };
 
     try {
       const result = await this.seatsAeroPartnerService.search(params);
+      const finalDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
+
       return {
         success: true,
         message: 'SeatsAero service working',
         deals: result.deals,
         total: result.total,
-        diagnostics,
+        diagnostics: {
+          before: initialDiagnostics,
+          after: finalDiagnostics,
+        },
+        programs: {
+          requested: result.meta.requestedPrograms,
+          successful: result.meta.successfulPrograms,
+          failed: result.meta.failedPrograms,
+        },
+        summaries: {
+          aggregated: {
+            counts: result.meta.aggregatedProgramCounts,
+            summary: result.meta.aggregatedProgramSummary,
+          },
+          deduped: {
+            counts: result.meta.dedupedProgramCounts,
+            summary: result.meta.dedupedProgramSummary,
+          },
+          limited: {
+            counts: result.meta.limitedProgramCounts,
+            summary: result.meta.limitedProgramSummary,
+          },
+        },
       };
     } catch (error) {
       const underlying =
         error instanceof Error && 'cause' in error && (error as Error & { cause?: unknown }).cause
           ? (error as Error & { cause?: unknown }).cause
           : error;
+      const finalDiagnostics = this.seatsAeroPartnerService.getDiagnostics();
 
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',
-        diagnostics,
+        diagnostics: {
+          before: initialDiagnostics,
+          after: finalDiagnostics,
+        },
         attemptedParams: params,
         error: this.seatsAeroPartnerService.describeError(underlying),
       };
