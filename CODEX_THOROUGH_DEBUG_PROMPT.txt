@@ -1,0 +1,82 @@
+SeatsAero Integration Debug - Thorough Investigation Required
+
+PROBLEM:
+The SeatsAero integration is completely broken in the backend. The /deals endpoint returns empty results and falls back to the database instead of showing real SeatsAero flight deals.
+
+CURRENT STATUS:
+- SeatsAero API works perfectly when called directly with curl
+- Backend is running but SeatsAero service fails with "getaddrinfo ENOTFOUND api.seats.aero" 
+- Environment variables show correct base URL "https://seats.aero/partnerapi" but backend still uses old URL
+- /deals endpoint returns userId "cmgx7c3mc000013ylf90bwphb" (database fallback) instead of "seats-aero"
+- Debug endpoint /deals/debug exists but doesn't work
+
+EVIDENCE:
+1. Direct API call works:
+curl -H "Partner-Authorization: pro_34GoHwfqK5fP3esJgqAhxv4cOmj" "https://seats.aero/partnerapi/availability?source=united&take=1"
+Returns real flight data successfully.
+
+2. Backend logs show:
+ERROR [SeatsAeroPartnerService] Error: getaddrinfo ENOTFOUND api.seats.aero
+ERROR [DealsService] Falling back to stored deals after SeatsAero error
+
+3. Environment configuration:
+SEATS_AERO_API_KEY=pro_34GoHwfqK5fP3esJgqAhxv4cOmj
+SEATS_AERO_BASE_URL=https://seats.aero/partnerapi
+SEATS_AERO_TIMEOUT_MS=20000
+SEATS_AERO_RPM=30
+SEATS_AERO_RPH=500
+
+SEATSAERO API DOCUMENTATION:
+- Partner API Base URL: https://seats.aero/partnerapi
+- Authentication: Partner-Authorization header with API key
+- Availability Endpoint: /availability (for bulk data)
+- Search Endpoint: /search (for specific routes)
+- Rate Limits: 30 requests/minute, 500 requests/hour
+- API Key: pro_34GoHwfqK5fP3esJgqAhxv4cOmj
+
+SEATSAERO DOCUMENTATION LINKS:
+- Official API Documentation: https://seats.aero/partnerapi/docs
+- Partner API Guide: https://seats.aero/partnerapi/guide
+- Authentication Guide: https://seats.aero/partnerapi/auth
+- Rate Limiting: https://seats.aero/partnerapi/limits
+- Availability API: https://seats.aero/partnerapi/availability
+- Search API: https://seats.aero/partnerapi/search
+- Response Format: https://seats.aero/partnerapi/response
+- Error Handling: https://seats.aero/partnerapi/errors
+
+KEY FILES TO INVESTIGATE:
+1. apps/api/src/deals/seats-aero-partner.service.ts - SeatsAero service implementation
+2. apps/api/src/deals/deals.service.ts - Main deals service that calls SeatsAero
+3. apps/api/src/deals/deals.controller.ts - API endpoints including /deals/debug
+4. apps/api/.env - Backend environment variables
+5. .env.local - Root environment variables
+
+SPECIFIC ISSUES TO DEBUG:
+1. Why is the backend still trying to connect to "api.seats.aero" instead of "seats.aero/partnerapi"?
+2. Are environment variables being loaded correctly in the SeatsAero service constructor?
+3. Is the HTTP client configuration correct in the SeatsAeroPartnerService?
+4. Why doesn't the debug endpoint work to show the actual error?
+5. Is there a caching issue with the environment variables?
+
+REQUIRED FIXES:
+1. Fix the base URL configuration in SeatsAeroPartnerService
+2. Ensure environment variables are loaded correctly
+3. Make the debug endpoint functional
+4. Verify the HTTP client setup
+5. Test the complete integration end-to-end
+
+EXPECTED RESULT:
+The /deals endpoint should return real SeatsAero flight deals with userId "seats-aero" instead of falling back to the database.
+
+PRIORITY: CRITICAL - This is blocking the core functionality of the application.
+
+DEBUG COMMANDS TO USE:
+curl -s "http://localhost:3001/deals/debug" | jq '.'
+curl -s "http://localhost:3001/deals?limit=1" | jq '.meta.userId'
+
+TESTING SEATSAERO API DIRECTLY:
+curl -H "Partner-Authorization: pro_34GoHwfqK5fP3esJgqAhxv4cOmj" \
+     -H "Accept: application/json" \
+     "https://seats.aero/partnerapi/availability?source=united&take=1"
+
+The SeatsAero integration must be fixed immediately. The backend should successfully call the SeatsAero API and return real flight deals instead of empty database results.
