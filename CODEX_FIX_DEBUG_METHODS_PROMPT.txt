@@ -1,0 +1,108 @@
+Fix Missing Debug Methods and Multi-Airline Logging Issues
+
+CRITICAL ISSUES TO FIX:
+
+1. **Missing Debug Methods:**
+The SeatsAeroPartnerService is missing essential debug methods that are being called by the deals service:
+- `getDiagnostics()` method is missing (called by deals.service.ts line 635)
+- `describeError()` method is missing
+- Debug endpoint `/deals/debug` is failing silently due to missing methods
+
+2. **Multi-Airline Implementation Not Working:**
+Despite implementing multi-airline support with enhanced logging, the system still only returns United Airlines flights:
+- API calls work for other airlines directly (American, Delta, etc.)
+- Backend implementation appears correct but execution fails
+- Cannot see the enhanced debugging logs due to missing debug methods
+
+3. **Port Conflicts:**
+Backend is experiencing EADDRINUSE errors on port 3001, suggesting multiple instances running.
+
+REQUIRED FIXES:
+
+1. **Restore Missing Debug Methods:**
+Add the missing methods to SeatsAeroPartnerService:
+```typescript
+getDiagnostics() {
+  return {
+    baseUrl: this.baseUrl,
+    configuredBaseUrl: this.rawBaseUrl ?? null,
+    timeoutMs: this.timeoutMs,
+    hasApiKey: Boolean(this.apiKey),
+    supportedPrograms: SEATS_AERO_PROGRAMS,
+    rateLimitInfo: {
+      recentMinuteRequests: this.recentMinuteRequests.length,
+      recentHourRequests: this.recentHourRequests.length,
+    }
+  };
+}
+
+describeError(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+    return {
+      type: 'axios_error',
+      status: axiosError.response?.status,
+      code: axiosError.code,
+      message: axiosError.message,
+      url: axiosError.config?.url,
+    };
+  }
+  
+  if (error instanceof Error) {
+    return {
+      type: 'error',
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+  
+  return {
+    type: 'unknown',
+    value: String(error),
+  };
+}
+```
+
+2. **Fix Debug Endpoint:**
+Ensure the `/deals/debug` endpoint works properly and shows:
+- Service diagnostics
+- Multi-airline execution results
+- Program distribution summary
+- Rate limiting status
+
+3. **Enable Debug Logging:**
+Make sure the enhanced logging added by Codex is visible:
+- Multi-program execution logs
+- Program-specific results
+- Aggregation and deduplication logs
+- Error details for failed programs
+
+4. **Test Multi-Airline Functionality:**
+Verify that the multi-airline implementation actually works:
+- Test with specific airlines: `/deals?programs=american,delta`
+- Test with all airlines: `/deals?limit=20`
+- Check debug logs for program execution
+- Verify results show multiple airlines
+
+EXPECTED BEHAVIOR AFTER FIX:
+- Debug endpoint returns proper diagnostics and multi-airline results
+- `/deals` endpoint returns flights from multiple airlines
+- Backend logs show detailed multi-program execution
+- No port conflicts or compilation errors
+
+TESTING COMMANDS:
+```bash
+# Should return flights from multiple airlines
+curl "http://localhost:3001/deals?limit=20" | jq '.deals[] | .airline' | sort | uniq -c
+
+# Debug endpoint should show diagnostics and multiple airlines
+curl "http://localhost:3001/deals/debug" | jq '.'
+
+# Specific airlines should work
+curl "http://localhost:3001/deals?programs=american,delta" | jq '.deals[] | .airline'
+```
+
+PRIORITY: CRITICAL - Debug methods are missing and multi-airline feature isn't working despite implementation.
+
+The goal is to restore the missing debug methods and ensure the multi-airline SeatsAero integration actually returns flights from all available airlines with proper debugging visibility.

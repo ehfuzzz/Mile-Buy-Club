@@ -182,6 +182,10 @@ export class SeatsAeroPartnerService {
       }
     }
 
+    this.logger.debug(
+      `SeatsAero base params for ${endpoint.replace('/', '')} request: ${JSON.stringify(baseParams)}`,
+    );
+
     const aggregatedDeals: SeatsAeroPartnerDeal[] = [];
     const successfulPrograms: string[] = [];
     const failedPrograms: string[] = [];
@@ -215,6 +219,13 @@ export class SeatsAeroPartnerService {
     }
 
     const dedupedDeals = this.deduplicateDeals(aggregatedDeals);
+    this.logger.debug(
+      `SeatsAero aggregated ${aggregatedDeals.length} deal(s) across programs (${this.formatProgramSummary(
+        aggregatedDeals,
+      )}). Deduped total: ${dedupedDeals.length}. Successful programs: ${normalizedPrograms
+        .filter((program) => !failures.find((failure) => failure.program === program))
+        .join(', ') || 'none'}. Failed programs: ${failures.map((failure) => failure.program).join(', ') || 'none'}.`,
+    );
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
 
@@ -253,9 +264,15 @@ export class SeatsAeroPartnerService {
     }
 
     if (normalized.length > 0) {
+      this.logger.debug(
+        `SeatsAero resolvePrograms resolved explicit programs: ${normalized.join(', ')}`,
+      );
       return normalized;
     }
 
+    this.logger.debug(
+      `SeatsAero resolvePrograms defaulting to all configured programs (${SEATS_AERO_PROGRAMS.length})`,
+    );
     return [...SEATS_AERO_PROGRAMS];
   }
 
@@ -383,6 +400,35 @@ export class SeatsAeroPartnerService {
     }
 
     return deduped;
+  }
+
+  private formatProgramSummary(deals: SeatsAeroPartnerDeal[]): string {
+    if (deals.length === 0) {
+      return 'none';
+    }
+
+    const counts = new Map<string, number>();
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts.set(program, (counts.get(program) ?? 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([program, count]) => `${program}:${count}`)
+      .join(', ');
+  }
+
+  private countDealsByProgram(deals: SeatsAeroPartnerDeal[]): Record<string, number> {
+    const counts: Record<string, number> = {};
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts[program] = (counts[program] ?? 0) + 1;
+    }
+
+    return counts;
   }
 
   private buildDealKey(deal: SeatsAeroPartnerDeal): string {
