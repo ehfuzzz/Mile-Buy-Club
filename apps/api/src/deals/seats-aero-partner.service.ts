@@ -148,11 +148,27 @@ export class SeatsAeroPartnerService {
   async search(options: SeatsAeroPartnerSearchOptions = {}): Promise<{
     deals: SeatsAeroPartnerDeal[];
     total: number;
+    meta: {
+      requestedPrograms: string[];
+      successfulPrograms: string[];
+      failedPrograms: string[];
+      aggregatedProgramCounts: Record<string, number>;
+      dedupedProgramCounts: Record<string, number>;
+      limitedProgramCounts: Record<string, number>;
+      aggregatedProgramSummary: string;
+      dedupedProgramSummary: string;
+      limitedProgramSummary: string;
+    };
   }> {
     const endpoint = options.origin && options.destination ? '/search' : '/availability';
     const normalizedPrograms = this.resolvePrograms(options);
     const baseTake = options.take && options.take > 0 ? Math.min(options.take, 200) : 50;
     const perProgramTake = this.resolvePerProgramTake(baseTake, normalizedPrograms.length);
+
+    this.logger.debug(
+      `Executing SeatsAero ${endpoint.replace('/', '')} request for ${normalizedPrograms.length} program(s) ` +
+        `(take=${baseTake}, perProgramTake=${perProgramTake}) => ${normalizedPrograms.join(', ')}`,
+    );
 
     const baseParams: Record<string, string | number> = {
       take: perProgramTake,
@@ -183,6 +199,11 @@ export class SeatsAeroPartnerService {
     const failures: { program: string; error: unknown }[] = [];
 
     for (const program of normalizedPrograms) {
+      this.logger.debug(
+        `SeatsAero initiating ${endpoint.replace('/', '')} request for program ${program} with base params ${JSON.stringify(
+          baseParams,
+        )}`,
+      );
       try {
         const programDeals = await this.fetchDealsForProgram({
           endpoint,
@@ -191,11 +212,19 @@ export class SeatsAeroPartnerService {
         });
 
         aggregatedDeals.push(...programDeals);
+        this.logger.debug(
+          `SeatsAero program ${program} returned ${programDeals.length} deal(s)`,
+        );
+
+        if (programDeals.length === 0) {
+          this.logger.debug(`SeatsAero program ${program} response was empty`);
+        }
       } catch (error) {
         failures.push({ program, error });
         const normalizedError = this.normalizeAxiosError(error);
         this.logger.warn(
           `SeatsAero request failed for program ${program}: ${normalizedError.message}`,
+          normalizedError,
         );
       }
     }
@@ -208,8 +237,23 @@ export class SeatsAeroPartnerService {
     }
 
     const dedupedDeals = this.deduplicateDeals(aggregatedDeals);
+    this.logger.debug(
+      `SeatsAero aggregated ${aggregatedDeals.length} deal(s) across programs (${this.formatProgramSummary(
+        aggregatedDeals,
+      )}). Deduped total: ${dedupedDeals.length}. Successful programs: ${normalizedPrograms
+        .filter((program) => !failures.find((failure) => failure.program === program))
+        .join(', ') || 'none'}. Failed programs: ${failures.map((failure) => failure.program).join(', ') || 'none'}.`,
+    );
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
+
+    if (limitedDeals.length !== dedupedDeals.length) {
+      this.logger.debug(
+        `SeatsAero returning top ${limitedDeals.length} deal(s) (${this.formatProgramSummary(
+          limitedDeals,
+        )}) after sorting`,
+      );
+    }
 
     if (failures.length > 0) {
       this.logger.warn(
@@ -221,7 +265,31 @@ export class SeatsAeroPartnerService {
       );
     }
 
-    return { deals: limitedDeals, total: dedupedDeals.length };
+    const requestedPrograms = [...normalizedPrograms];
+    const successfulPrograms = requestedPrograms.filter(
+      (program) => !failures.find((failure) => failure.program === program),
+    );
+    const failedPrograms = failures.map((failure) => failure.program);
+
+    const aggregatedProgramCounts = this.countDealsByProgram(aggregatedDeals);
+    const dedupedProgramCounts = this.countDealsByProgram(dedupedDeals);
+    const limitedProgramCounts = this.countDealsByProgram(limitedDeals);
+
+    return {
+      deals: limitedDeals,
+      total: dedupedDeals.length,
+      meta: {
+        requestedPrograms,
+        successfulPrograms,
+        failedPrograms,
+        aggregatedProgramCounts,
+        dedupedProgramCounts,
+        limitedProgramCounts,
+        aggregatedProgramSummary: this.formatProgramSummary(aggregatedDeals),
+        dedupedProgramSummary: this.formatProgramSummary(dedupedDeals),
+        limitedProgramSummary: this.formatProgramSummary(limitedDeals),
+      },
+    };
   }
 
   getDiagnostics() {
@@ -230,6 +298,11 @@ export class SeatsAeroPartnerService {
       configuredBaseUrl: this.rawBaseUrl ?? null,
       timeoutMs: this.timeoutMs,
       hasApiKey: Boolean(this.apiKey),
+      supportedPrograms: [...SEATS_AERO_PROGRAMS],
+      rateLimitInfo: {
+        recentMinuteRequests: this.recentMinuteRequests.length,
+        recentHourRequests: this.recentHourRequests.length,
+      },
     };
   }
 
@@ -239,13 +312,13 @@ export class SeatsAeroPartnerService {
       const requestUrl = this.resolveRequestUrl(axiosError);
 
       return {
-        type: 'axios',
+        type: 'axios_error',
+        status: axiosError.response?.status,
+        code: axiosError.code,
         message: axiosError.message,
-        code: axiosError.code ?? null,
-        status: axiosError.response?.status ?? null,
-        data: axiosError.response?.data ?? null,
-        requestUrl,
+        url: requestUrl,
         method: axiosError.config?.method ?? null,
+        data: axiosError.response?.data ?? null,
       };
     }
 
@@ -260,7 +333,14 @@ export class SeatsAeroPartnerService {
 
     return {
       type: 'unknown',
-      message: 'Unable to describe error',
+      value: String(error),
+    };
+  }
+
+  getProgramSummary(deals: SeatsAeroPartnerDeal[]) {
+    return {
+      counts: this.countDealsByProgram(deals),
+      summary: this.formatProgramSummary(deals),
     };
   }
 
@@ -325,7 +405,14 @@ export class SeatsAeroPartnerService {
     const queryParams: Record<string, string | number> = {
       ...params,
       source: program,
+      program,
     };
+
+    this.logger.debug(
+      `Requesting SeatsAero ${endpoint.replace('/', '')} deals for program ${program} with query ${JSON.stringify(
+        queryParams,
+      )}`,
+    );
 
     await this.enforceRateLimits();
 
@@ -334,23 +421,22 @@ export class SeatsAeroPartnerService {
     });
 
     const payload = response.data ?? {};
-    const deals = this.extractDeals(payload).map((deal) => this.normalizeDeal(deal));
+    const deals = this.extractDeals(payload, program).map((deal) => this.normalizeDeal(deal));
 
     return deals.map((deal) => this.ensureDealProgram(deal, program));
   }
 
   private ensureDealProgram(deal: SeatsAeroPartnerDeal, program: string): SeatsAeroPartnerDeal {
     const normalizedProgram = deal.program?.toLowerCase();
-    if (normalizedProgram === program) {
-      return deal;
-    }
+    const normalizedLoyaltyProgram = deal.loyaltyProgram?.toLowerCase();
 
     return {
       ...deal,
-      program: deal.program ?? program,
-      loyaltyProgram: deal.loyaltyProgram ?? program,
-      airline: deal.airline ?? program,
-      carrier: deal.carrier ?? program,
+      program: normalizedProgram === program ? deal.program : program,
+      loyaltyProgram:
+        normalizedLoyaltyProgram === program ? deal.loyaltyProgram : program,
+      airline: deal.airline ?? deal.carrier ?? program,
+      carrier: deal.carrier ?? deal.airline ?? program,
     };
   }
 
@@ -369,6 +455,35 @@ export class SeatsAeroPartnerService {
     }
 
     return deduped;
+  }
+
+  private formatProgramSummary(deals: SeatsAeroPartnerDeal[]): string {
+    if (deals.length === 0) {
+      return 'none';
+    }
+
+    const counts = new Map<string, number>();
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts.set(program, (counts.get(program) ?? 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([program, count]) => `${program}:${count}`)
+      .join(', ');
+  }
+
+  private countDealsByProgram(deals: SeatsAeroPartnerDeal[]): Record<string, number> {
+    const counts: Record<string, number> = {};
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts[program] = (counts[program] ?? 0) + 1;
+    }
+
+    return counts;
   }
 
   private buildDealKey(deal: SeatsAeroPartnerDeal): string {
@@ -446,50 +561,15 @@ export class SeatsAeroPartnerService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  getDiagnostics() {
-    return {
-      baseUrl: this.baseUrl,
-      configuredBaseUrl: this.rawBaseUrl ?? null,
-      timeoutMs: this.timeoutMs,
-      hasApiKey: Boolean(this.apiKey),
-    };
-  }
-
-  describeError(error: unknown) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      const requestUrl = this.resolveRequestUrl(axiosError);
-
-      return {
-        type: 'axios',
-        message: axiosError.message,
-        code: axiosError.code ?? null,
-        status: axiosError.response?.status ?? null,
-        data: axiosError.response?.data ?? null,
-        requestUrl,
-        method: axiosError.config?.method ?? null,
-      };
-    }
-
-    if (error instanceof Error) {
-      return {
-        type: 'error',
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      };
-    }
-
-    return {
-      type: 'unknown',
-      message: 'Unable to describe error',
-    };
-  }
-
-  private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
+  private extractDeals(
+    payload: SeatsAeroPartnerSearchResponse,
+    program: string,
+  ): SeatsAeroPartnerDeal[] {
     if (Array.isArray(payload.data)) {
       // Handle bulk availability format
-      return payload.data.map((availability: any) => this.mapAvailabilityToDeal(availability));
+      return payload.data.map((availability: any) =>
+        this.mapAvailabilityToDeal(availability, program),
+      );
     }
 
     if (Array.isArray(payload.results)) {
@@ -503,12 +583,18 @@ export class SeatsAeroPartnerService {
     return [];
   }
 
-  private mapAvailabilityToDeal(availability: any): SeatsAeroPartnerDeal {
+  private mapAvailabilityToDeal(
+    availability: any,
+    requestedProgram: string,
+  ): SeatsAeroPartnerDeal {
     const route = availability.Route || {};
     const cabin = this.determineBestCabin(availability);
     const miles = this.getMilesForCabin(availability, cabin);
     const taxes = this.getTaxesForCabin(availability, cabin);
     const seats = this.getSeatsForCabin(availability, cabin);
+
+    const normalizedProgram = requestedProgram || route.Source || 'unknown';
+    const airline = normalizedProgram;
 
     return {
       id: availability.ID,
@@ -516,11 +602,11 @@ export class SeatsAeroPartnerService {
       destination: route.DestinationAirport,
       departure: availability.Date,
       arrival: availability.Date, // Same day for now
-      airline: route.Source,
-      carrier: route.Source,
+      airline,
+      carrier: airline,
       cabin: cabin,
-      program: route.Source,
-      loyaltyProgram: route.Source,
+      program: normalizedProgram,
+      loyaltyProgram: normalizedProgram,
       miles: miles,
       points: miles,
       seats: seats,
@@ -541,8 +627,8 @@ export class SeatsAeroPartnerService {
       watcherId: 'seats-aero-bulk',
       watcherName: 'SeatsAero Bulk Availability',
       segments: [{
-        marketingCarrier: route.Source,
-        operatingCarrier: route.Source,
+        marketingCarrier: airline,
+        operatingCarrier: airline,
         origin: route.OriginAirport,
         destination: route.DestinationAirport,
         departure: availability.Date,
