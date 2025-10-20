@@ -644,6 +644,25 @@ export class DealsService {
     };
   }
 
+  private normalizeDateValue(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    return null;
+  }
+
   private parseRawFlight(raw: JsonValue | null): Flight | null {
     if (!raw || typeof raw !== 'object') {
       return null;

@@ -248,6 +248,30 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
     validatedBooking,
   ]);
 
+  const handleBookNow = useCallback(() => {
+    if (!validatedBooking) {
+      return;
+    }
+
+    const confirmationLabel = tooltipAirlineLabel ?? validatedBooking.displayHost;
+    const confirmed = window.confirm(
+      `You'll be redirected to ${confirmationLabel} to complete your booking. Continue?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsBooking(true);
+    try {
+      window.open(validatedBooking.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Failed to open booking link", error);
+    } finally {
+      window.setTimeout(() => setIsBooking(false), 300);
+    }
+  }, [tooltipAirlineLabel, validatedBooking]);
+
   return (
     <article
       className={`flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md ${
