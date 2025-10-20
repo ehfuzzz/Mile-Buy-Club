@@ -79,6 +79,80 @@ interface CachedSeatsAeroDeal {
   expiresAt: Date | null;
 }
 
+const BOOKING_HOST_ALLOWLIST = [
+  'seats.aero',
+  'united.com',
+  'mileageplus.united.com',
+  'aa.com',
+  'americanairlines.com',
+  'delta.com',
+  'aircanada.com',
+  'aeroplan.com',
+  'lufthansa.com',
+  'singaporeair.com',
+  'singaporeairlines.com',
+  'cathaypacific.com',
+  'emirates.com',
+  'qatarairways.com',
+  'virginatlantic.com',
+  'virgin-atlantic.com',
+  'klm.com',
+  'airfrance.com',
+  'alaskaair.com',
+  'southwest.com',
+  'qantas.com',
+  'britishairways.com',
+  'ba.com',
+  'ana.co.jp',
+  'jal.co.jp',
+  'etihad.com',
+  'turkishairlines.com',
+  'finnair.com',
+  'ethiopianairlines.com',
+  'saudia.com',
+  'flysas.com',
+  'virginaustralia.com',
+  'jetblue.com',
+  'latam.com',
+  'azul.com.br',
+];
+
+const PROGRAM_HOST_OVERRIDES: Record<string, string[]> = {
+  american: ['aa.com', 'americanairlines.com'],
+  united: ['united.com', 'mileageplus.united.com'],
+  delta: ['delta.com'],
+  aeroplan: ['aeroplan.com', 'aircanada.com'],
+  aircanada: ['aircanada.com', 'aeroplan.com'],
+  lufthansa: ['lufthansa.com'],
+  singapore: ['singaporeair.com', 'singaporeairlines.com'],
+  singaporeair: ['singaporeair.com', 'singaporeairlines.com'],
+  cathaypacific: ['cathaypacific.com'],
+  emirates: ['emirates.com'],
+  qatar: ['qatarairways.com'],
+  qatarairways: ['qatarairways.com'],
+  virginatlantic: ['virginatlantic.com', 'virgin-atlantic.com'],
+  klm: ['klm.com'],
+  airfrance: ['airfrance.com'],
+  alaska: ['alaskaair.com'],
+  alaskaair: ['alaskaair.com'],
+  southwest: ['southwest.com'],
+  qantas: ['qantas.com'],
+  british: ['britishairways.com', 'ba.com'],
+  britishairways: ['britishairways.com', 'ba.com'],
+  turkish: ['turkishairlines.com'],
+  turkishairlines: ['turkishairlines.com'],
+  finnair: ['finnair.com'],
+  ethiopian: ['ethiopianairlines.com'],
+  saudia: ['saudia.com'],
+  velocity: ['virginaustralia.com'],
+  virginaustralia: ['virginaustralia.com'],
+  flyingblue: ['airfrance.com', 'klm.com'],
+  jetblue: ['jetblue.com'],
+  azul: ['azul.com.br'],
+  latam: ['latam.com'],
+  virginatlanticuk: ['virginatlantic.com', 'virgin-atlantic.com'],
+};
+
 export type FlightPricingOptionType = 'cash' | 'award' | 'mixed';
 export interface FlightPricingOption {
   type: FlightPricingOptionType;
@@ -341,6 +415,10 @@ export class DealsService {
     const createdAt = deal.createdAt.toISOString();
     const updatedAt = deal.updatedAt.toISOString();
     const expiresAt = deal.expiresAt ? deal.expiresAt.toISOString() : null;
+    const sanitizedBookingUrl = this.sanitizeBookingUrl(deal.bookingUrl, {
+      airline: deal.airline,
+      program,
+    });
 
     return {
       id: deal.id,
@@ -380,12 +458,12 @@ export class DealsService {
             cashAmount: cashPrice ?? undefined,
             cashCurrency: 'USD',
             provider: providerLabel,
-            bookingUrl: deal.bookingUrl ?? undefined,
+            bookingUrl: sanitizedBookingUrl ?? undefined,
             description: `Book via ${program}`,
           },
         ],
       },
-      bookingUrl: deal.bookingUrl ?? null,
+      bookingUrl: sanitizedBookingUrl,
       status: 'active',
       createdAt,
       updatedAt,
@@ -433,10 +511,24 @@ export class DealsService {
 
   toDealView(deal: DealWithWatcher): DealView {
     const raw = this.parseRawFlight(deal.rawData);
-    const options = this.normalizePricingOptions(deal.pricingOptions, deal.provider ?? raw?.provider ?? undefined);
+    const providerProgram = this.extractProgramFromProvider(
+      deal.provider ?? raw?.provider ?? null,
+    );
+    const options = this.normalizePricingOptions(
+      deal.pricingOptions,
+      deal.provider ?? raw?.provider ?? undefined,
+      {
+        airline: deal.airline ?? raw?.airline ?? null,
+        program: providerProgram,
+      },
+    );
     const route = this.buildRoute(deal, raw);
 
-    const bookingUrl = deal.bookingUrl ?? options.find((option) => option.bookingUrl)?.bookingUrl ?? null;
+    const bookingUrl =
+      this.sanitizeBookingUrl(deal.bookingUrl, {
+        airline: deal.airline ?? raw?.airline ?? null,
+        program: providerProgram,
+      }) ?? options.find((option) => option.bookingUrl)?.bookingUrl ?? null;
 
     return {
       id: deal.id,
@@ -535,6 +627,7 @@ export class DealsService {
   private normalizePricingOptions(
     raw: JsonValue | null,
     fallbackProvider?: string,
+    context?: { airline?: string | null; program?: string | null },
   ): DealPricingOptionView[] {
     if (!Array.isArray(raw)) {
       return [];
@@ -557,7 +650,10 @@ export class DealsService {
           miles: typeof option.miles === 'number' ? option.miles : undefined,
           pointsCurrency: typeof option.pointsCurrency === 'string' ? option.pointsCurrency : undefined,
           provider: typeof option.provider === 'string' ? option.provider : fallbackProvider,
-          bookingUrl: typeof option.bookingUrl === 'string' ? option.bookingUrl : undefined,
+          bookingUrl: this.sanitizeBookingUrl(option.bookingUrl, {
+            airline: context?.airline,
+            program: context?.program,
+          }) ?? undefined,
           description: typeof option.description === 'string' ? option.description : undefined,
           isEstimated: typeof option.isEstimated === 'boolean' ? option.isEstimated : undefined,
         } satisfies DealPricingOptionView;
@@ -572,4 +668,101 @@ export class DealsService {
     return value as Record<string, unknown>;
   }
 
+  private sanitizeBookingUrl(
+    url: unknown,
+    context?: { airline?: string | null; program?: string | null },
+  ): string | null {
+    if (typeof url !== 'string') {
+      return null;
+    }
+
+    const trimmed = url.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      return null;
+    }
+
+    if (parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    if (!this.isAllowedBookingHost(host, context)) {
+      return null;
+    }
+
+    return parsed.toString();
+  }
+
+  private isAllowedBookingHost(
+    host: string,
+    context?: { airline?: string | null; program?: string | null },
+  ): boolean {
+    const normalizedHost = host.toLowerCase();
+
+    if (BOOKING_HOST_ALLOWLIST.some((fragment) => normalizedHost.includes(fragment))) {
+      return true;
+    }
+
+    const slugHost = normalizedHost.replace(/[^a-z0-9]/g, '');
+    const slugs = new Set<string>();
+    if (context?.airline) {
+      slugs.add(this.slugify(context.airline));
+    }
+    if (context?.program) {
+      slugs.add(this.slugify(context.program));
+    }
+
+    for (const slug of slugs) {
+      if (!slug) {
+        continue;
+      }
+
+      if (slugHost.includes(slug)) {
+        return true;
+      }
+
+      const overrides = PROGRAM_HOST_OVERRIDES[slug];
+      if (overrides?.some((fragment) => normalizedHost.includes(fragment))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private slugify(value: string | null | undefined): string {
+    return value ? value.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  }
+
+  private extractProgramFromProvider(provider: string | null): string | null {
+    if (!provider) {
+      return null;
+    }
+
+    const trimmed = provider.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.includes('·')) {
+      const parts = trimmed
+        .split('·')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (parts.length > 1) {
+        return parts[parts.length - 1].toLowerCase();
+      }
+    }
+
+    return trimmed.toLowerCase();
+  }
 }
