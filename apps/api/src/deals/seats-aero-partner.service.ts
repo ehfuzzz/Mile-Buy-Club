@@ -199,6 +199,11 @@ export class SeatsAeroPartnerService {
     const failures: { program: string; error: unknown }[] = [];
 
     for (const program of normalizedPrograms) {
+      this.logger.debug(
+        `SeatsAero initiating ${endpoint.replace('/', '')} request for program ${program} with base params ${JSON.stringify(
+          baseParams,
+        )}`,
+      );
       try {
         const programDeals = await this.fetchDealsForProgram({
           endpoint,
@@ -210,6 +215,10 @@ export class SeatsAeroPartnerService {
         this.logger.debug(
           `SeatsAero program ${program} returned ${programDeals.length} deal(s)`,
         );
+
+        if (programDeals.length === 0) {
+          this.logger.debug(`SeatsAero program ${program} response was empty`);
+        }
       } catch (error) {
         failures.push({ program, error });
         const normalizedError = this.normalizeAxiosError(error);
@@ -231,7 +240,9 @@ export class SeatsAeroPartnerService {
     this.logger.debug(
       `SeatsAero aggregated ${aggregatedDeals.length} deal(s) across programs (${this.formatProgramSummary(
         aggregatedDeals,
-      )}). Deduped total: ${dedupedDeals.length}.`,
+      )}). Deduped total: ${dedupedDeals.length}. Successful programs: ${normalizedPrograms
+        .filter((program) => !failures.find((failure) => failure.program === program))
+        .join(', ') || 'none'}. Failed programs: ${failures.map((failure) => failure.program).join(', ') || 'none'}.`,
     );
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
@@ -398,8 +409,8 @@ export class SeatsAeroPartnerService {
     };
 
     this.logger.debug(
-      `Requesting SeatsAero ${endpoint.replace('/', '')} deals for program ${program} with params ${JSON.stringify(
-        params,
+      `Requesting SeatsAero ${endpoint.replace('/', '')} deals for program ${program} with query ${JSON.stringify(
+        queryParams,
       )}`,
     );
 
@@ -417,16 +428,15 @@ export class SeatsAeroPartnerService {
 
   private ensureDealProgram(deal: SeatsAeroPartnerDeal, program: string): SeatsAeroPartnerDeal {
     const normalizedProgram = deal.program?.toLowerCase();
-    if (normalizedProgram === program) {
-      return deal;
-    }
+    const normalizedLoyaltyProgram = deal.loyaltyProgram?.toLowerCase();
 
     return {
       ...deal,
-      program: deal.program ?? program,
-      loyaltyProgram: deal.loyaltyProgram ?? program,
-      airline: deal.airline ?? program,
-      carrier: deal.carrier ?? program,
+      program: normalizedProgram === program ? deal.program : program,
+      loyaltyProgram:
+        normalizedLoyaltyProgram === program ? deal.loyaltyProgram : program,
+      airline: deal.airline ?? deal.carrier ?? program,
+      carrier: deal.carrier ?? deal.airline ?? program,
     };
   }
 
