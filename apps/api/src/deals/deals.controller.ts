@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { DealsService } from './deals.service';
 
@@ -32,10 +32,17 @@ export class DealsController {
     return this.dealsService.listDeals(userId, take, programList);
   }
 
-  @Get('debug')
-  @ApiOperation({ summary: 'Debug SeatsAero service' })
-  async debugSeatsAero() {
-    return this.dealsService.debugSeatsAero();
+  @Post('admin/refresh-seats-aero')
+  @ApiOperation({ summary: 'Trigger SeatsAero cache refresh' })
+  async refreshSeatsAeroData() {
+    await this.dealsService.refreshSeatsAeroData();
+    return { message: 'SeatsAero data refresh initiated' };
+  }
+
+  @Get('admin/seats-aero-stats')
+  @ApiOperation({ summary: 'Get cached SeatsAero program counts' })
+  async getSeatsAeroStats() {
+    return this.dealsService.getSeatsAeroStats();
   }
 
   @Get(':watcherId')

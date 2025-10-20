@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { SeatsAeroPartnerDeal, SeatsAeroPartnerSegment, SeatsAeroPartnerService } from './seats-aero-partner.service';
+import { SeatsAeroCollectorService } from '../data-collection/seats-aero-collector.service';
 
 // Temporarily define types locally to avoid module resolution issues caused by the
 // lightweight Prisma client stub that ships with this repository. The runtime
@@ -58,6 +58,100 @@ interface DealRecord {
 }
 
 type DealWithWatcher = DealRecord;
+
+type SeatsAeroProgramStat = { program: string; _count: { id: number } };
+
+interface CachedSeatsAeroDeal {
+  id: string;
+  externalId: string;
+  airline: string | null;
+  program: string | null;
+  origin: string | null;
+  destination: string | null;
+  departureDate: Date | null;
+  cabin: string | null;
+  miles: number | null;
+  cashPrice: unknown;
+  bookingUrl: string | null;
+  rawData: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date | null;
+}
+
+const BOOKING_HOST_ALLOWLIST = [
+  'seats.aero',
+  'united.com',
+  'mileageplus.united.com',
+  'aa.com',
+  'americanairlines.com',
+  'delta.com',
+  'aircanada.com',
+  'aeroplan.com',
+  'lufthansa.com',
+  'singaporeair.com',
+  'singaporeairlines.com',
+  'cathaypacific.com',
+  'emirates.com',
+  'qatarairways.com',
+  'virginatlantic.com',
+  'virgin-atlantic.com',
+  'klm.com',
+  'airfrance.com',
+  'alaskaair.com',
+  'southwest.com',
+  'qantas.com',
+  'britishairways.com',
+  'ba.com',
+  'ana.co.jp',
+  'jal.co.jp',
+  'etihad.com',
+  'turkishairlines.com',
+  'finnair.com',
+  'ethiopianairlines.com',
+  'saudia.com',
+  'flysas.com',
+  'virginaustralia.com',
+  'jetblue.com',
+  'latam.com',
+  'azul.com.br',
+];
+
+const PROGRAM_HOST_OVERRIDES: Record<string, string[]> = {
+  american: ['aa.com', 'americanairlines.com'],
+  united: ['united.com', 'mileageplus.united.com'],
+  delta: ['delta.com'],
+  aeroplan: ['aeroplan.com', 'aircanada.com'],
+  aircanada: ['aircanada.com', 'aeroplan.com'],
+  lufthansa: ['lufthansa.com'],
+  singapore: ['singaporeair.com', 'singaporeairlines.com'],
+  singaporeair: ['singaporeair.com', 'singaporeairlines.com'],
+  cathaypacific: ['cathaypacific.com'],
+  emirates: ['emirates.com'],
+  qatar: ['qatarairways.com'],
+  qatarairways: ['qatarairways.com'],
+  virginatlantic: ['virginatlantic.com', 'virgin-atlantic.com'],
+  klm: ['klm.com'],
+  airfrance: ['airfrance.com'],
+  alaska: ['alaskaair.com'],
+  alaskaair: ['alaskaair.com'],
+  southwest: ['southwest.com'],
+  qantas: ['qantas.com'],
+  british: ['britishairways.com', 'ba.com'],
+  britishairways: ['britishairways.com', 'ba.com'],
+  turkish: ['turkishairlines.com'],
+  turkishairlines: ['turkishairlines.com'],
+  finnair: ['finnair.com'],
+  ethiopian: ['ethiopianairlines.com'],
+  saudia: ['saudia.com'],
+  velocity: ['virginaustralia.com'],
+  virginaustralia: ['virginaustralia.com'],
+  flyingblue: ['airfrance.com', 'klm.com'],
+  jetblue: ['jetblue.com'],
+  azul: ['azul.com.br'],
+  latam: ['latam.com'],
+  virginatlanticuk: ['virginatlantic.com', 'virgin-atlantic.com'],
+};
 
 export type FlightPricingOptionType = 'cash' | 'award' | 'mixed';
 export interface FlightPricingOption {
@@ -178,6 +272,8 @@ export interface DealsListResponse {
     total: number;
     userId: string;
     watcherCount: number;
+    programs?: string[];
+    dataSource?: string;
   };
 }
 
@@ -187,7 +283,8 @@ export class DealsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly seatsAeroPartnerService: SeatsAeroPartnerService,
+    @Inject(forwardRef(() => SeatsAeroCollectorService))
+    private readonly seatsAeroCollectorService: SeatsAeroCollectorService,
   ) {}
 
   async resolveUserId(userId?: string): Promise<string> {
@@ -216,28 +313,42 @@ export class DealsService {
     programs?: string[],
   ): Promise<DealsListResponse> {
     const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
+    const normalizedPrograms =
+      Array.isArray(programs) && programs.length > 0 ? programs : undefined;
 
-    try {
-      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({
-        take,
-        programs,
-      });
-      const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
-      const watcherCount =
-        mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;
+    const programLog = normalizedPrograms ? normalizedPrograms.join(', ') : 'all';
+    this.logger.debug(
+      `Querying cached SeatsAero deals: take=${take}, programs=${programLog}`,
+    );
 
-      return {
-        deals: mappedDeals,
-        meta: {
-          total: mappedDeals.length,
-          userId: userId ?? 'seats-aero',
-          watcherCount,
-        },
-      };
-    } catch (error) {
-      this.logger.error('Falling back to stored deals after SeatsAero error', error as Error);
-      return this.listDealsFromDatabase(userId, take);
-    }
+    const now = new Date();
+    const cachedDeals = (await this.prisma.seatsAeroDeal.findMany({
+      where: {
+        ...(normalizedPrograms ? { program: { in: normalizedPrograms } } : {}),
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      take,
+      orderBy: { createdAt: 'desc' },
+    })) as CachedSeatsAeroDeal[];
+
+    const mappedDeals = cachedDeals.map((deal) =>
+      this.mapCachedDealToDealView(deal),
+    );
+    const watcherCount =
+      mappedDeals.length > 0
+        ? new Set(mappedDeals.map((deal: DealView) => deal.watcherId)).size
+        : 0;
+
+    return {
+      deals: mappedDeals,
+      meta: {
+        total: mappedDeals.length,
+        userId: userId ?? 'seats-aero-cached',
+        watcherCount,
+        programs: normalizedPrograms ?? ['all'],
+        dataSource: 'cached',
+      },
+    };
   }
 
   async listDealsForWatcher(
@@ -269,84 +380,74 @@ export class DealsService {
     };
   }
 
-  private async listDealsFromDatabase(userId: string | undefined, limit = 100): Promise<DealsListResponse> {
-    const resolvedUserId = await this.resolveUserId(userId);
-    const records = (await this.prisma.deal.findMany({
-      where: { userId: resolvedUserId, status: 'active' },
-      orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
-      take: limit,
-      include: {
-        watcher: {
-          select: { id: true, name: true },
-        },
-      },
-    })) as DealWithWatcher[];
-
-    const deals = records.map((deal) => this.toDealView(deal));
-    const watcherCount = new Set(deals.map((deal) => deal.watcherId)).size;
-
-    return {
-      deals,
-      meta: {
-        total: deals.length,
-        userId: resolvedUserId,
-        watcherCount,
-      },
-    };
+  async refreshSeatsAeroData(): Promise<void> {
+    await this.seatsAeroCollectorService.collectAllAirlinesData();
   }
 
-  private mapPartnerDeal(deal: SeatsAeroPartnerDeal): DealView {
-    const id = deal.id ?? this.buildDealId(deal);
-    const program = deal.program ?? deal.loyaltyProgram ?? 'Seats.aero';
-    const provider = deal.program ? `Seats.aero · ${program}` : 'Seats.aero';
-    const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
-    const firstPartnerSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
-    const lastPartnerSegment =
-      partnerSegments.length > 0 ? partnerSegments[partnerSegments.length - 1] : undefined;
+  async getSeatsAeroStats(): Promise<{ totalDeals: number; byProgram: { program: string; count: number }[] }> {
+    const now = new Date();
+    const stats: SeatsAeroProgramStat[] = await this.prisma.seatsAeroDeal.groupBy({
+      by: ['program'],
+      _count: { id: true },
+      where: {
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
 
-    const departure = deal.departure ?? firstPartnerSegment?.departure ?? null;
-    const arrival = deal.arrival ?? lastPartnerSegment?.arrival ?? null;
-    const miles = this.resolveMiles(deal);
-    const cashDue = this.resolveCashDue(deal);
-    const currency = deal.currency ?? deal.taxesCurrency ?? 'USD';
-    const availability = this.resolveAvailability(deal);
-    const cpp = this.computeCpp(miles, cashDue);
+    const totalDeals = stats.reduce((sum, stat) => sum + stat._count.id, 0);
+    const byProgram = stats.map((stat) => ({
+      program: stat.program,
+      count: stat._count.id,
+    }));
+
+    return { totalDeals, byProgram };
+  }
+
+  private mapCachedDealToDealView(deal: CachedSeatsAeroDeal): DealView {
+    const program = deal.program ?? 'seats-aero';
+    const providerLabel = `Seats.aero · ${program}`;
+    const miles = typeof deal.miles === 'number' ? deal.miles : null;
+    const cashPrice = this.toNumber(deal.cashPrice);
+    const cpp = this.computeCpp(miles, cashPrice);
+    const availability = 1;
     const score = this.computeScore(cpp, availability);
-    const updatedAt = deal.updatedAt ?? new Date().toISOString();
-    const segments = this.mapSegments(partnerSegments, deal.cabin ?? null);
-    const firstSegment = segments && segments.length > 0 ? segments[0] : undefined;
-    const lastSegment = segments && segments.length > 0 ? segments[segments.length - 1] : undefined;
-    const cabinSource = deal.cabin ?? firstSegment?.cabin ?? null;
-    const normalizedCabin = typeof cabinSource === 'string' ? cabinSource.toLowerCase() : cabinSource;
+    const departure = deal.departureDate ? deal.departureDate.toISOString() : null;
+    const createdAt = deal.createdAt.toISOString();
+    const updatedAt = deal.updatedAt.toISOString();
+    const expiresAt = deal.expiresAt ? deal.expiresAt.toISOString() : null;
+    const sanitizedBookingUrl = this.sanitizeBookingUrl(deal.bookingUrl, {
+      airline: deal.airline,
+      program,
+    });
 
     return {
-      id,
-      watcherId: deal.watcherId ?? 'seats-aero-live',
-      watcherName: deal.watcherName ?? program,
-      provider: 'SEATS_AERO',
-      airline: deal.airline ?? deal.carrier ?? firstSegment?.marketingCarrier ?? null,
-      cabin: normalizedCabin,
+      id: deal.id,
+      watcherId: `seats-aero-${program}`,
+      watcherName: program,
+      provider: providerLabel,
+      airline: deal.airline ?? null,
+      cabin: deal.cabin ?? null,
       route: {
-        origin: deal.origin ?? firstSegment?.origin ?? null,
-        destination: deal.destination ?? lastSegment?.destination ?? null,
+        origin: deal.origin ?? null,
+        destination: deal.destination ?? null,
         departure,
-        arrival,
-        durationMinutes: this.computeDurationMinutes(departure, arrival),
-        stops: this.computeStops(segments),
-        aircraft: this.resolveAircraft(segments),
+        arrival: null,
+        durationMinutes: null,
+        stops: null,
+        aircraft: null,
       },
       availability,
       score,
       cpp,
       value: null,
-      taxes: cashDue ?? null,
+      taxes: cashPrice,
       pricing: {
         primaryType: 'award',
-        price: cashDue ?? 0,
-        currency,
+        price: cashPrice ?? 0,
+        currency: 'USD',
         milesRequired: miles,
-        cashPrice: cashDue,
-        cashCurrency: currency,
+        cashPrice,
+        cashCurrency: 'USD',
         pointsCashPrice: null,
         pointsCashCurrency: null,
         pointsCashMiles: null,
@@ -354,87 +455,43 @@ export class DealsService {
           {
             type: 'award',
             miles: miles ?? undefined,
-            cashAmount: cashDue ?? undefined,
-            cashCurrency: currency,
-            provider,
-            bookingUrl: deal.bookingUrl,
-            description: program ? `Book via ${program}` : undefined,
+            cashAmount: cashPrice ?? undefined,
+            cashCurrency: 'USD',
+            provider: providerLabel,
+            bookingUrl: sanitizedBookingUrl ?? undefined,
+            description: `Book via ${program}`,
           },
         ],
       },
-      bookingUrl: deal.bookingUrl ?? null,
+      bookingUrl: sanitizedBookingUrl,
       status: 'active',
-      createdAt: deal.createdAt ?? updatedAt,
+      createdAt,
       updatedAt,
-      expiresAt: deal.expiresAt ?? null,
+      expiresAt,
       scoreBreakdown: {
         cpp,
         availability,
+        score,
       },
     };
   }
 
-  private buildDealId(deal: SeatsAeroPartnerDeal): string {
-    const partnerSegments = Array.isArray(deal.segments) ? deal.segments : [];
-    const firstSegment = partnerSegments.length > 0 ? partnerSegments[0] : undefined;
-    const lastSegment = partnerSegments.length > 0 ? partnerSegments[partnerSegments.length - 1] : undefined;
-
-    const origin = deal.origin ?? firstSegment?.origin ?? 'unknown';
-    const destination = deal.destination ?? lastSegment?.destination ?? 'unknown';
-    const departure = (deal.departure ?? firstSegment?.departure ?? '').replace(/[^0-9A-Za-z]/g, '');
-    const program = (deal.program ?? deal.loyaltyProgram ?? 'seats').replace(/\s+/g, '-').toLowerCase();
-    return `${program}-${origin}-${destination}-${departure || Date.now()}`;
-  }
-
-  private resolveMiles(deal: SeatsAeroPartnerDeal): number | null {
-    if (typeof deal.miles === 'number') {
-      return Math.max(0, Math.round(deal.miles));
+  private toNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
     }
 
-    if (typeof deal.points === 'number') {
-      return Math.max(0, Math.round(deal.points));
+    if (value && typeof value === 'object' && 'toString' in value) {
+      const coerced = Number((value as { toString(): string }).toString());
+      return Number.isFinite(coerced) ? coerced : null;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
     }
 
     return null;
-  }
-
-  private resolveCashDue(deal: SeatsAeroPartnerDeal): number | null {
-    const totals = [deal.totalFees, deal.totalTaxes].filter(
-      (value): value is number => typeof value === 'number' && Number.isFinite(value),
-    );
-
-    if (totals.length > 0) {
-      const sum = totals.reduce((acc, value) => acc + value, 0);
-      return Math.round(sum * 100) / 100;
-    }
-
-    const partials = [deal.fees, deal.taxes].filter(
-      (value): value is number => typeof value === 'number' && Number.isFinite(value),
-    );
-
-    if (partials.length === 0) {
-      return null;
-    }
-
-    const sum = partials.reduce((acc, value) => acc + value, 0);
-    return Math.round(sum * 100) / 100;
-  }
-
-  private resolveAvailability(deal: SeatsAeroPartnerDeal): number | null {
-    const availability =
-      typeof deal.availability === 'number'
-        ? deal.availability
-        : typeof deal.seatsAvailable === 'number'
-        ? deal.seatsAvailable
-        : typeof deal.seats === 'number'
-        ? deal.seats
-        : null;
-
-    if (availability === null) {
-      return null;
-    }
-
-    return Math.max(0, Math.floor(availability));
   }
 
   private computeCpp(miles: number | null, cashDue: number | null): number | null {
@@ -452,69 +509,26 @@ export class DealsService {
     return Math.max(10, Math.min(100, base + availabilityBoost));
   }
 
-  private mapSegments(
-    segments: SeatsAeroPartnerSegment[] | undefined,
-    defaultCabin: string | null,
-  ): FlightSegment[] | undefined {
-    if (!segments || segments.length === 0) {
-      return undefined;
-    }
-
-    return segments.map((segment) => ({
-      marketingCarrier: segment.marketingCarrier ?? segment.operatingCarrier ?? segment.flightNumber ?? 'UNK',
-      operatingCarrier: segment.operatingCarrier,
-      flightNumber: segment.flightNumber,
-      origin: segment.origin ?? '',
-      destination: segment.destination ?? '',
-      departureTime: segment.departure ?? '',
-      arrivalTime: segment.arrival ?? '',
-      cabin: (segment.cabin ?? defaultCabin ?? 'economy') as FlightSegment['cabin'],
-      fareClass: segment.fareClass ?? undefined,
-      aircraft: segment.aircraft ?? undefined,
-    }));
-  }
-
-  private computeDurationMinutes(departure: string | null, arrival: string | null): number | null {
-    if (!departure || !arrival) {
-      return null;
-    }
-
-    const start = new Date(departure).getTime();
-    const end = new Date(arrival).getTime();
-
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-      return null;
-    }
-
-    return Math.round((end - start) / 60000);
-  }
-
-  private computeStops(segments?: FlightSegment[]): number | null {
-    if (!segments || segments.length === 0) {
-      return null;
-    }
-
-    return Math.max(0, segments.length - 1);
-  }
-
-  private resolveAircraft(segments?: FlightSegment[]): string[] | null {
-    if (!segments) {
-      return null;
-    }
-
-    const aircraft = segments
-      .map((segment) => segment.aircraft)
-      .filter((value): value is string => Boolean(value));
-
-    return aircraft.length > 0 ? Array.from(new Set(aircraft)) : null;
-  }
-
   toDealView(deal: DealWithWatcher): DealView {
     const raw = this.parseRawFlight(deal.rawData);
-    const options = this.normalizePricingOptions(deal.pricingOptions, deal.provider ?? raw?.provider ?? undefined);
+    const providerProgram = this.extractProgramFromProvider(
+      deal.provider ?? raw?.provider ?? null,
+    );
+    const options = this.normalizePricingOptions(
+      deal.pricingOptions,
+      deal.provider ?? raw?.provider ?? undefined,
+      {
+        airline: deal.airline ?? raw?.airline ?? null,
+        program: providerProgram,
+      },
+    );
     const route = this.buildRoute(deal, raw);
 
-    const bookingUrl = deal.bookingUrl ?? options.find((option) => option.bookingUrl)?.bookingUrl ?? null;
+    const bookingUrl =
+      this.sanitizeBookingUrl(deal.bookingUrl, {
+        airline: deal.airline ?? raw?.airline ?? null,
+        program: providerProgram,
+      }) ?? options.find((option) => option.bookingUrl)?.bookingUrl ?? null;
 
     return {
       id: deal.id,
@@ -594,6 +608,7 @@ export class DealsService {
   private normalizePricingOptions(
     raw: JsonValue | null,
     fallbackProvider?: string,
+    context?: { airline?: string | null; program?: string | null },
   ): DealPricingOptionView[] {
     if (!Array.isArray(raw)) {
       return [];
@@ -616,7 +631,10 @@ export class DealsService {
           miles: typeof option.miles === 'number' ? option.miles : undefined,
           pointsCurrency: typeof option.pointsCurrency === 'string' ? option.pointsCurrency : undefined,
           provider: typeof option.provider === 'string' ? option.provider : fallbackProvider,
-          bookingUrl: typeof option.bookingUrl === 'string' ? option.bookingUrl : undefined,
+          bookingUrl: this.sanitizeBookingUrl(option.bookingUrl, {
+            airline: context?.airline,
+            program: context?.program,
+          }) ?? undefined,
           description: typeof option.description === 'string' ? option.description : undefined,
           isEstimated: typeof option.isEstimated === 'boolean' ? option.isEstimated : undefined,
         } satisfies DealPricingOptionView;
@@ -631,32 +649,101 @@ export class DealsService {
     return value as Record<string, unknown>;
   }
 
-  async debugSeatsAero() {
-    const diagnostics = this.seatsAeroPartnerService.getDiagnostics();
-    const params = { take: 1 };
-
-    try {
-      const result = await this.seatsAeroPartnerService.search(params);
-      return {
-        success: true,
-        message: 'SeatsAero service working',
-        deals: result.deals,
-        total: result.total,
-        diagnostics,
-      };
-    } catch (error) {
-      const underlying =
-        error instanceof Error && 'cause' in error && (error as Error & { cause?: unknown }).cause
-          ? (error as Error & { cause?: unknown }).cause
-          : error;
-
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        diagnostics,
-        attemptedParams: params,
-        error: this.seatsAeroPartnerService.describeError(underlying),
-      };
+  private sanitizeBookingUrl(
+    url: unknown,
+    context?: { airline?: string | null; program?: string | null },
+  ): string | null {
+    if (typeof url !== 'string') {
+      return null;
     }
+
+    const trimmed = url.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      return null;
+    }
+
+    if (parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    if (!this.isAllowedBookingHost(host, context)) {
+      return null;
+    }
+
+    return parsed.toString();
+  }
+
+  private isAllowedBookingHost(
+    host: string,
+    context?: { airline?: string | null; program?: string | null },
+  ): boolean {
+    const normalizedHost = host.toLowerCase();
+
+    if (BOOKING_HOST_ALLOWLIST.some((fragment) => normalizedHost.includes(fragment))) {
+      return true;
+    }
+
+    const slugHost = normalizedHost.replace(/[^a-z0-9]/g, '');
+    const slugs = new Set<string>();
+    if (context?.airline) {
+      slugs.add(this.slugify(context.airline));
+    }
+    if (context?.program) {
+      slugs.add(this.slugify(context.program));
+    }
+
+    for (const slug of slugs) {
+      if (!slug) {
+        continue;
+      }
+
+      if (slugHost.includes(slug)) {
+        return true;
+      }
+
+      const overrides = PROGRAM_HOST_OVERRIDES[slug];
+      if (overrides?.some((fragment) => normalizedHost.includes(fragment))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private slugify(value: string | null | undefined): string {
+    return value ? value.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  }
+
+  private extractProgramFromProvider(provider: string | null): string | null {
+    if (!provider) {
+      return null;
+    }
+
+    const trimmed = provider.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.includes('·')) {
+      const parts = trimmed
+        .split('·')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (parts.length > 1) {
+        return parts[parts.length - 1].toLowerCase();
+      }
+    }
+
+    return trimmed.toLowerCase();
   }
 }
