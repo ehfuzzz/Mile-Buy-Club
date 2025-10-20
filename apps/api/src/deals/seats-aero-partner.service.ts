@@ -189,6 +189,7 @@ export class SeatsAeroPartnerService {
     const aggregatedDeals: SeatsAeroPartnerDeal[] = [];
     const successfulPrograms: string[] = [];
     const failedPrograms: string[] = [];
+    const failures: { program: string; error: unknown }[] = [];
 
     for (const program of requestedPrograms) {
       try {
@@ -202,6 +203,7 @@ export class SeatsAeroPartnerService {
         successfulPrograms.push(program);
       } catch (error) {
         failedPrograms.push(program);
+        failures.push({ program, error });
         const normalizedError = this.normalizeAxiosError(error);
         this.logger.warn(
           `SeatsAero request failed for program ${program}: ${normalizedError.message}`,
@@ -227,6 +229,14 @@ export class SeatsAeroPartnerService {
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
 
+    this.logger.debug(
+      `SeatsAero aggregated ${aggregatedDeals.length} raw deal(s) across ${requestedPrograms.length} requested program(s). Deduped total: ${dedupedDeals.length}. Successful programs: ${requestedPrograms
+        .filter((program) => !failures.find((failure) => failure.program === program))
+        .join(', ') || 'none'}. Failed programs: ${failures
+        .map((failure) => failure.program)
+        .join(', ') || 'none'}.`,
+    );
+
     return {
       deals: limitedDeals,
       total: dedupedDeals.length,
@@ -240,16 +250,6 @@ export class SeatsAeroPartnerService {
 
   private normalizeProgramList(options: SeatsAeroPartnerSearchOptions): string[] {
     const normalized: string[] = [];
-
-    const requestedPrograms = Array.isArray(options.programs)
-      ? options.programs.filter((value) => typeof value === 'string')
-      : undefined;
-
-    this.logger.debug(
-      `SeatsAero resolving programs from options: program=${options.program ?? 'none'}, programs=${
-        requestedPrograms ? requestedPrograms.join(', ') : 'none'
-      }`,
-    );
 
     const fromOptions = [
       ...(options.program ? [options.program] : []),
