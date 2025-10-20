@@ -152,27 +152,14 @@ export class SeatsAeroPartnerService {
       requestedPrograms: string[];
       successfulPrograms: string[];
       failedPrograms: string[];
-      aggregatedProgramCounts: Record<string, number>;
-      dedupedProgramCounts: Record<string, number>;
-      limitedProgramCounts: Record<string, number>;
-      aggregatedProgramSummary: string;
-      dedupedProgramSummary: string;
-      limitedProgramSummary: string;
     };
   }> {
     const endpoint = options.origin && options.destination ? '/search' : '/availability';
-    const normalizedPrograms = this.resolvePrograms(options);
+    const requestedPrograms = this.normalizeProgramList(options);
     const baseTake = options.take && options.take > 0 ? Math.min(options.take, 200) : 50;
-    const perProgramTake = this.resolvePerProgramTake(baseTake, normalizedPrograms.length);
+    const perProgramTake = this.resolvePerProgramTake(baseTake, requestedPrograms.length);
 
-    this.logger.debug(
-      `Executing SeatsAero ${endpoint.replace('/', '')} request for ${normalizedPrograms.length} program(s) ` +
-        `(take=${baseTake}, perProgramTake=${perProgramTake}) => ${normalizedPrograms.join(', ')}`,
-    );
-
-    const baseParams: Record<string, string | number> = {
-      take: perProgramTake,
-    };
+    const baseParams: Record<string, string | number> = {};
 
     if (typeof options.skip === 'number' && Number.isFinite(options.skip)) {
       baseParams.skip = options.skip;
@@ -200,31 +187,21 @@ export class SeatsAeroPartnerService {
     );
 
     const aggregatedDeals: SeatsAeroPartnerDeal[] = [];
-    const failures: { program: string; error: unknown }[] = [];
+    const successfulPrograms: string[] = [];
+    const failedPrograms: string[] = [];
 
-    for (const program of normalizedPrograms) {
-      this.logger.debug(
-        `SeatsAero initiating ${endpoint.replace('/', '')} request for program ${program} with base params ${JSON.stringify(
-          baseParams,
-        )}`,
-      );
+    for (const program of requestedPrograms) {
       try {
-        const programDeals = await this.fetchDealsForProgram({
+        const programDeals = await this.requestProgramDeals({
           endpoint,
           program,
+          take: perProgramTake,
           params: baseParams,
         });
-
         aggregatedDeals.push(...programDeals);
-        this.logger.debug(
-          `SeatsAero program ${program} returned ${programDeals.length} deal(s)`,
-        );
-
-        if (programDeals.length === 0) {
-          this.logger.debug(`SeatsAero program ${program} response was empty`);
-        }
+        successfulPrograms.push(program);
       } catch (error) {
-        failures.push({ program, error });
+        failedPrograms.push(program);
         const normalizedError = this.normalizeAxiosError(error);
         this.logger.warn(
           `SeatsAero request failed for program ${program}: ${normalizedError.message}`,
@@ -233,11 +210,10 @@ export class SeatsAeroPartnerService {
       }
     }
 
-    if (failures.length === normalizedPrograms.length) {
-      const error = failures[0]?.error ?? new Error('All SeatsAero requests failed');
-      const normalizedError = this.normalizeAxiosError(error);
-      this.logger.error('Failed to fetch SeatsAero live deals', normalizedError);
-      throw normalizedError;
+    if (successfulPrograms.length === 0) {
+      const error = new Error('All SeatsAero program requests failed');
+      this.logger.error(error.message);
+      throw error;
     }
 
     const dedupedDeals = this.deduplicateDeals(aggregatedDeals);
@@ -251,34 +227,6 @@ export class SeatsAeroPartnerService {
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
 
-    if (limitedDeals.length !== dedupedDeals.length) {
-      this.logger.debug(
-        `SeatsAero returning top ${limitedDeals.length} deal(s) (${this.formatProgramSummary(
-          limitedDeals,
-        )}) after sorting`,
-      );
-    }
-
-    if (failures.length > 0) {
-      this.logger.warn(
-        `SeatsAero returned partial results. Successful programs: ${normalizedPrograms
-          .filter((program) => !failures.find((failure) => failure.program === program))
-          .join(', ') || 'none'}; Failed programs: ${failures
-          .map((failure) => failure.program)
-          .join(', ')}`,
-      );
-    }
-
-    const requestedPrograms = [...normalizedPrograms];
-    const successfulPrograms = requestedPrograms.filter(
-      (program) => !failures.find((failure) => failure.program === program),
-    );
-    const failedPrograms = failures.map((failure) => failure.program);
-
-    const aggregatedProgramCounts = this.countDealsByProgram(aggregatedDeals);
-    const dedupedProgramCounts = this.countDealsByProgram(dedupedDeals);
-    const limitedProgramCounts = this.countDealsByProgram(limitedDeals);
-
     return {
       deals: limitedDeals,
       total: dedupedDeals.length,
@@ -286,69 +234,11 @@ export class SeatsAeroPartnerService {
         requestedPrograms,
         successfulPrograms,
         failedPrograms,
-        aggregatedProgramCounts,
-        dedupedProgramCounts,
-        limitedProgramCounts,
-        aggregatedProgramSummary: this.formatProgramSummary(aggregatedDeals),
-        dedupedProgramSummary: this.formatProgramSummary(dedupedDeals),
-        limitedProgramSummary: this.formatProgramSummary(limitedDeals),
       },
     };
   }
 
-  getDiagnostics() {
-    return {
-      baseUrl: this.baseUrl,
-      configuredBaseUrl: this.rawBaseUrl ?? null,
-      timeoutMs: this.timeoutMs,
-      hasApiKey: Boolean(this.apiKey),
-      supportedPrograms: [...SEATS_AERO_PROGRAMS],
-      rateLimitInfo: {
-        recentMinuteRequests: this.recentMinuteRequests.length,
-        recentHourRequests: this.recentHourRequests.length,
-      },
-    };
-  }
-
-  describeError(error: unknown) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      const requestUrl = this.resolveRequestUrl(axiosError);
-
-      return {
-        type: 'axios_error',
-        status: axiosError.response?.status,
-        code: axiosError.code,
-        message: axiosError.message,
-        url: requestUrl,
-        method: axiosError.config?.method ?? null,
-        data: axiosError.response?.data ?? null,
-      };
-    }
-
-    if (error instanceof Error) {
-      return {
-        type: 'error',
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      };
-    }
-
-    return {
-      type: 'unknown',
-      value: String(error),
-    };
-  }
-
-  getProgramSummary(deals: SeatsAeroPartnerDeal[]) {
-    return {
-      counts: this.countDealsByProgram(deals),
-      summary: this.formatProgramSummary(deals),
-    };
-  }
-
-  private resolvePrograms(options: SeatsAeroPartnerSearchOptions): string[] {
+  private normalizeProgramList(options: SeatsAeroPartnerSearchOptions): string[] {
     const normalized: string[] = [];
 
     const requestedPrograms = Array.isArray(options.programs)
@@ -413,17 +303,20 @@ export class SeatsAeroPartnerService {
     return Math.min(perProgram, 200);
   }
 
-  private async fetchDealsForProgram({
+  private async requestProgramDeals({
     endpoint,
     program,
+    take,
     params,
   }: {
     endpoint: string;
     program: string;
+    take: number;
     params: Record<string, string | number>;
   }): Promise<SeatsAeroPartnerDeal[]> {
     const queryParams: Record<string, string | number> = {
       ...params,
+      take,
       source: program,
       program,
     };
