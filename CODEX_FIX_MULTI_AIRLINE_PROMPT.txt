@@ -1,0 +1,97 @@
+Fix Multi-Airline SeatsAero Integration - Only United Flights Returned
+
+CRITICAL ISSUE:
+The multi-airline SeatsAero integration is implemented but only returns United flights despite requesting multiple airlines.
+
+CURRENT BEHAVIOR:
+- `/deals` returns only United flights
+- `/deals?programs=american,delta` still returns only United flights  
+- Multi-airline implementation exists but not working
+
+EXPECTED BEHAVIOR:
+- `/deals` should return flights from multiple airlines (American, Delta, Aeroplan, etc.)
+- `/deals?programs=american,delta` should return only American and Delta flights
+- Should see flights from 20+ airlines as implemented
+
+DEBUGGING NEEDED:
+
+1. **Check Multi-Airline Execution:**
+The SeatsAeroPartnerService has multi-airline support implemented but execution is failing. Need to verify:
+- Are all programs being requested from SeatsAero API?
+- Are API calls succeeding for non-United airlines?
+- Is the aggregation logic working correctly?
+
+2. **Add Enhanced Logging:**
+Add detailed logging to see what's happening during multi-airline execution:
+```typescript
+// In search() method, add logging for each program request
+for (const program of normalizedPrograms) {
+  this.logger.debug(`Requesting SeatsAero data for program: ${program}`);
+  try {
+    const programDeals = await this.fetchDealsForProgram({
+      endpoint,
+      program,
+      params: baseParams,
+    });
+    this.logger.debug(`Program ${program} returned ${programDeals.length} deals`);
+    aggregatedDeals.push(...programDeals);
+  } catch (error) {
+    this.logger.error(`Program ${program} failed: ${error.message}`);
+  }
+}
+```
+
+3. **Test Individual Airline API Calls:**
+Verify that SeatsAero API actually returns data for non-United airlines:
+```bash
+# Test American Airlines directly
+curl "https://seats.aero/partnerapi/availability?take=5&source=american" \
+  -H "Partner-Authorization: pro_34GoHwfqK5fP3esJgqAhxv4cOmj"
+
+# Test Delta Airlines directly  
+curl "https://seats.aero/partnerapi/availability?take=5&source=delta" \
+  -H "Partner-Authorization: pro_34GoHwfqK5fP3esJgqAhxv4cOmj"
+```
+
+4. **Check Program Resolution:**
+Verify that `resolvePrograms()` is correctly expanding airline names:
+- american → american
+- delta → delta  
+- united → united
+- etc.
+
+5. **Debug fetchDealsForProgram:**
+Ensure `fetchDealsForProgram()` is correctly adding the `source` parameter to API requests.
+
+REQUIRED FIXES:
+
+1. **Add Comprehensive Logging:**
+- Log each program being requested
+- Log API response counts per program
+- Log any failures per program
+- Log final aggregation results
+
+2. **Verify API Parameter Construction:**
+Ensure the `source` parameter is correctly added to SeatsAero API requests for each airline.
+
+3. **Test API Responses:**
+Verify that SeatsAero actually has data for multiple airlines (not just United).
+
+4. **Fix Program Execution:**
+If certain programs are failing, implement proper error handling and fallbacks.
+
+TESTING COMMANDS:
+```bash
+# Should return multiple airlines
+curl "http://localhost:3001/deals?limit=20" | jq '.deals[] | .airline' | sort | uniq -c
+
+# Should return specific airlines only
+curl "http://localhost:3001/deals?programs=american,delta" | jq '.deals[] | .airline' | sort | uniq -c
+
+# Debug endpoint should show multi-program execution
+curl "http://localhost:3001/deals/debug" | jq '.'
+```
+
+PRIORITY: HIGH - Multi-airline functionality is essential for the application.
+
+FOCUS: ONLY fix the multi-airline issue. Do NOT modify booking URLs or other features.

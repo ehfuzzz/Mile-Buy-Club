@@ -1,0 +1,119 @@
+Fix Missing Booking URLs for SeatsAero Flight Deals
+
+CRITICAL ISSUE:
+The SeatsAero integration is working and returning flight deals, but all deals show "Booking unavailable" because booking URLs are not being generated.
+
+PROBLEM ANALYSIS:
+1. SeatsAero API response does not include booking URLs in the availability endpoint
+2. The `extractBookingUrl()` method returns undefined because no booking URL fields exist in the response
+3. Frontend displays "Booking unavailable" button instead of "Book Now" button
+4. Users cannot complete bookings directly to airline websites
+
+REQUIRED SOLUTION:
+Generate booking URLs dynamically based on airline and flight details from the SeatsAero response.
+
+IMPLEMENTATION NEEDED:
+
+1. **Update `extractBookingUrl()` method in SeatsAeroPartnerService:**
+Instead of looking for existing booking URL fields, construct URLs based on:
+- Airline/carrier (from Route.Source)
+- Origin and destination airports
+- Flight date
+- Cabin class
+- Miles/points required
+
+2. **Create airline-specific booking URL generators:**
+```typescript
+private generateBookingUrl(deal: SeatsAeroPartnerDeal): string | undefined {
+  const airline = deal.airline?.toLowerCase();
+  const origin = deal.origin;
+  const destination = deal.destination;
+  const date = deal.departure;
+  const cabin = deal.cabin;
+  const miles = deal.miles;
+
+  switch (airline) {
+    case 'united':
+      return `https://www.united.com/ual/en/us/flight-search/book-a-flight/flightshopping/availability/awd?origin=${origin}&destination=${destination}&departDate=${date}&cabinClass=${cabin}`;
+    case 'american':
+      return `https://www.aa.com/booking/find-flights?origin=${origin}&destination=${destination}&departDate=${date}&cabinClass=${cabin}`;
+    case 'delta':
+      return `https://www.delta.com/booking/find-flights?origin=${origin}&destination=${destination}&departDate=${date}&cabinClass=${cabin}`;
+    case 'aeroplan':
+      return `https://www.aircanada.com/ca/en/aco/home/aeroplan/awards.html?origin=${origin}&destination=${destination}&departDate=${date}`;
+    case 'alaska':
+      return `https://www.alaskaair.com/booking/find-flights?origin=${origin}&destination=${destination}&departDate=${date}&cabinClass=${cabin}`;
+    case 'velocity':
+      return `https://www.velocityfrequentflyer.com/content/ProgramBenefits/Awards/Flights/`;
+    case 'qantas':
+      return `https://www.qantas.com/au/en/flight-search.html?origin=${origin}&destination=${destination}&departDate=${date}`;
+    case 'flyingblue':
+      return `https://www.airfrance.com/us/en/booking/flight-search.html?origin=${origin}&destination=${destination}&departDate=${date}`;
+    case 'jetblue':
+      return `https://www.jetblue.com/booking/find-flights?origin=${origin}&destination=${destination}&departDate=${date}`;
+    case 'emirates':
+      return `https://www.emirates.com/us/english/plan-and-book/find-flights/`;
+    case 'etihad':
+      return `https://www.etihad.com/en-us/plan-and-book/find-flights/`;
+    case 'qatar':
+      return `https://www.qatarairways.com/en-us/search-results.html?origin=${origin}&destination=${destination}&departDate=${date}`;
+    case 'singapore':
+      return `https://www.singaporeair.com/en_UK/us/home#/book/bookflight`;
+    case 'lufthansa':
+      return `https://www.lufthansa.com/us/en/homepage`;
+    case 'turkish':
+      return `https://www.turkishairlines.com/en-us/`;
+    case 'finnair':
+      return `https://www.finnair.com/us-en/`;
+    case 'ethiopian':
+      return `https://www.ethiopianairlines.com/`;
+    case 'saudia':
+      return `https://www.saudia.com/`;
+    case 'eurobonus':
+      return `https://www.sas.se/en/`;
+    case 'virginatlantic':
+      return `https://www.virgin-atlantic.com/us/en.html`;
+    case 'aeromexico':
+      return `https://www.aeromexico.com/en-us`;
+    case 'connectmiles':
+      return `https://www.avianca.com/us/en/`;
+    case 'azul':
+      return `https://www.voeazul.com.br/en`;
+    case 'smiles':
+      return `https://www.smiles.com.ar/`;
+    default:
+      return undefined;
+  }
+}
+```
+
+3. **Update `mapAvailabilityToDeal()` method:**
+Change line 541 from:
+```typescript
+bookingUrl: this.extractBookingUrl(availability),
+```
+to:
+```typescript
+bookingUrl: this.generateBookingUrl(availability),
+```
+
+4. **Add URL parameter encoding:**
+Ensure all URL parameters are properly encoded for special characters.
+
+5. **Add fallback for unsupported airlines:**
+For airlines not in the switch statement, return a generic search URL or undefined.
+
+EXPECTED RESULTS:
+- All flight deals will have valid booking URLs
+- Frontend will display "Book Now" buttons instead of "Booking unavailable"
+- Users can click to go directly to airline booking pages
+- URLs will be properly formatted with flight details
+
+TESTING:
+After implementation, verify:
+```bash
+curl "http://localhost:3001/deals?limit=5" | jq '.deals[0].bookingUrl'
+# Should return a valid airline booking URL instead of null
+```
+
+PRIORITY: HIGH - This is essential for user experience and completing the booking flow.
