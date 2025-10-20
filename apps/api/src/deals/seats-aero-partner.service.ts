@@ -154,6 +154,11 @@ export class SeatsAeroPartnerService {
     const baseTake = options.take && options.take > 0 ? Math.min(options.take, 200) : 50;
     const perProgramTake = this.resolvePerProgramTake(baseTake, normalizedPrograms.length);
 
+    this.logger.debug(
+      `Executing SeatsAero ${endpoint.replace('/', '')} request for ${normalizedPrograms.length} program(s) ` +
+        `(take=${baseTake}, perProgramTake=${perProgramTake}) => ${normalizedPrograms.join(', ')}`,
+    );
+
     const baseParams: Record<string, string | number> = {
       take: perProgramTake,
     };
@@ -191,11 +196,15 @@ export class SeatsAeroPartnerService {
         });
 
         aggregatedDeals.push(...programDeals);
+        this.logger.debug(
+          `SeatsAero program ${program} returned ${programDeals.length} deal(s)`,
+        );
       } catch (error) {
         failures.push({ program, error });
         const normalizedError = this.normalizeAxiosError(error);
         this.logger.warn(
           `SeatsAero request failed for program ${program}: ${normalizedError.message}`,
+          normalizedError,
         );
       }
     }
@@ -208,8 +217,21 @@ export class SeatsAeroPartnerService {
     }
 
     const dedupedDeals = this.deduplicateDeals(aggregatedDeals);
+    this.logger.debug(
+      `SeatsAero aggregated ${aggregatedDeals.length} deal(s) across programs (${this.formatProgramSummary(
+        aggregatedDeals,
+      )}). Deduped total: ${dedupedDeals.length}.`,
+    );
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
+
+    if (limitedDeals.length !== dedupedDeals.length) {
+      this.logger.debug(
+        `SeatsAero returning top ${limitedDeals.length} deal(s) (${this.formatProgramSummary(
+          limitedDeals,
+        )}) after sorting`,
+      );
+    }
 
     if (failures.length > 0) {
       this.logger.warn(
@@ -325,7 +347,14 @@ export class SeatsAeroPartnerService {
     const queryParams: Record<string, string | number> = {
       ...params,
       source: program,
+      program,
     };
+
+    this.logger.debug(
+      `Requesting SeatsAero ${endpoint.replace('/', '')} deals for program ${program} with params ${JSON.stringify(
+        params,
+      )}`,
+    );
 
     await this.enforceRateLimits();
 
@@ -369,6 +398,24 @@ export class SeatsAeroPartnerService {
     }
 
     return deduped;
+  }
+
+  private formatProgramSummary(deals: SeatsAeroPartnerDeal[]): string {
+    if (deals.length === 0) {
+      return 'none';
+    }
+
+    const counts = new Map<string, number>();
+
+    for (const deal of deals) {
+      const program = (deal.program ?? deal.loyaltyProgram ?? 'unknown').toLowerCase();
+      counts.set(program, (counts.get(program) ?? 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([program, count]) => `${program}:${count}`)
+      .join(', ');
   }
 
   private buildDealKey(deal: SeatsAeroPartnerDeal): string {
@@ -444,46 +491,6 @@ export class SeatsAeroPartnerService {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  getDiagnostics() {
-    return {
-      baseUrl: this.baseUrl,
-      configuredBaseUrl: this.rawBaseUrl ?? null,
-      timeoutMs: this.timeoutMs,
-      hasApiKey: Boolean(this.apiKey),
-    };
-  }
-
-  describeError(error: unknown) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      const requestUrl = this.resolveRequestUrl(axiosError);
-
-      return {
-        type: 'axios',
-        message: axiosError.message,
-        code: axiosError.code ?? null,
-        status: axiosError.response?.status ?? null,
-        data: axiosError.response?.data ?? null,
-        requestUrl,
-        method: axiosError.config?.method ?? null,
-      };
-    }
-
-    if (error instanceof Error) {
-      return {
-        type: 'error',
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      };
-    }
-
-    return {
-      type: 'unknown',
-      message: 'Unable to describe error',
-    };
   }
 
   private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
