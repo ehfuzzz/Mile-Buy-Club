@@ -45,6 +45,13 @@ export class DealsController {
     return this.dealsService.getSeatsAeroStats();
   }
 
+  @Get(':dealId/booking-url')
+  @ApiOperation({ summary: 'Get booking URL for a specific deal' })
+  async getBookingUrl(@Param('dealId') dealId: string) {
+    const bookingUrl = await this.dealsService.getBookingUrlForDeal(dealId);
+    return { bookingUrl };
+  }
+
   @Get(':watcherId')
   @ApiOperation({ summary: 'List deals for a specific watcher' })
   @ApiQuery({ name: 'userId', required: false })

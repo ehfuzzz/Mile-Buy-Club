@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, NotFoundException, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { SeatsAeroCollectorService } from '../data-collection/seats-aero-collector.service';
+import { SeatsAeroPartnerService } from './seats-aero-partner.service';
 
 // Temporarily define types locally to avoid module resolution issues caused by the
 // lightweight Prisma client stub that ships with this repository. The runtime
@@ -285,6 +286,7 @@ export class DealsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => SeatsAeroCollectorService))
     private readonly seatsAeroCollectorService: SeatsAeroCollectorService,
+    private readonly seatsAeroPartnerService: SeatsAeroPartnerService,
   ) {}
 
   async resolveUserId(userId?: string): Promise<string> {
@@ -401,6 +403,84 @@ export class DealsService {
     }));
 
     return { totalDeals, byProgram };
+  }
+
+  async getBookingUrlForDeal(dealId: string): Promise<string | null> {
+    if (!dealId) {
+      return null;
+    }
+
+    try {
+      const cached = await this.prisma.seatsAeroDeal.findUnique({
+        where: { id: dealId },
+        select: {
+          id: true,
+          externalId: true,
+          airline: true,
+          program: true,
+          bookingUrl: true,
+        },
+      });
+
+      if (cached) {
+        const context = { airline: cached.airline, program: cached.program };
+        const stored = this.sanitizeBookingUrl(cached.bookingUrl, context);
+        if (stored) {
+          return stored;
+        }
+
+        if (!cached.externalId) {
+          this.logger.warn(`SeatsAero cached deal ${dealId} is missing externalId for booking lookup`);
+          return null;
+        }
+
+        const remoteUrl = await this.seatsAeroPartnerService.getBookingUrlFromTrips(cached.externalId);
+        const sanitizedRemote = this.sanitizeBookingUrl(remoteUrl, context);
+
+        if (sanitizedRemote) {
+          try {
+            await this.prisma.seatsAeroDeal.update({
+              where: { id: cached.id },
+              data: { bookingUrl: sanitizedRemote },
+            });
+          } catch (error) {
+            this.logger.warn(
+              `Failed to persist sanitized booking URL for SeatsAero deal ${dealId}: ${
+                error instanceof Error ? error.message : 'unknown error'
+              }`,
+            );
+          }
+
+          return sanitizedRemote;
+        }
+
+        this.logger.warn(`SeatsAero trips lookup returned no valid booking URL for deal ${dealId}`);
+        return null;
+      }
+
+      const record = await this.prisma.deal.findUnique({
+        where: { id: dealId },
+        select: {
+          bookingUrl: true,
+          airline: true,
+          provider: true,
+        },
+      });
+
+      if (!record) {
+        this.logger.warn(`Deal not found for booking lookup: ${dealId}`);
+        return null;
+      }
+
+      const providerProgram = this.extractProgramFromProvider(record.provider ?? null);
+      return this.sanitizeBookingUrl(record.bookingUrl, {
+        airline: record.airline ?? null,
+        program: providerProgram,
+      });
+    } catch (error) {
+      this.logger.error(`Error resolving booking URL for deal ${dealId}`, error as Error);
+      return null;
+    }
   }
 
   private mapCachedDealToDealView(deal: CachedSeatsAeroDeal): DealView {

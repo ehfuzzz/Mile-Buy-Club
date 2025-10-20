@@ -98,6 +98,47 @@ const SEATS_AERO_PROGRAMS = [
   'smiles',
 ];
 
+const TRUSTED_BOOKING_HOSTS = [
+  'seats.aero',
+  'united.com',
+  'mileageplus.united.com',
+  'aa.com',
+  'americanairlines.com',
+  'delta.com',
+  'jetblue.com',
+  'southwest.com',
+  'alaskaair.com',
+  'aircanada.com',
+  'aeroplan.com',
+  'lufthansa.com',
+  'singaporeair.com',
+  'singaporeairlines.com',
+  'cathaypacific.com',
+  'emirates.com',
+  'qatarairways.com',
+  'qatar.com',
+  'qantas.com',
+  'virginatlantic.com',
+  'virgin-atlantic.com',
+  'virginaustralia.com',
+  'airfrance.com',
+  'klm.com',
+  'britishairways.com',
+  'ba.com',
+  'ana.co.jp',
+  'jal.co.jp',
+  'etihad.com',
+  'turkishairlines.com',
+  'finnair.com',
+  'ethiopianairlines.com',
+  'saudia.com',
+  'flysas.com',
+  'latam.com',
+  'azul.com.br',
+  'aeromexico.com',
+  'smiles.com.br',
+];
+
 @Injectable()
 export class SeatsAeroPartnerService {
   private readonly logger = new Logger(SeatsAeroPartnerService.name);
@@ -246,6 +287,47 @@ export class SeatsAeroPartnerService {
         failedPrograms,
       },
     };
+  }
+
+  async getBookingUrlFromTrips(availabilityId: string): Promise<string | null> {
+    if (!availabilityId) {
+      return null;
+    }
+
+    try {
+      await this.enforceRateLimits();
+      const startedAt = Date.now();
+      const response = await this.http.get(`/trips/${availabilityId}`);
+      this.logger.debug(
+        `SeatsAero trips lookup for ${availabilityId} returned status ${response.status} in ${Date.now() - startedAt}ms`,
+      );
+
+      const bookingCandidate = this.extractBookingUrlFromTripsResponse(response.data);
+      if (!bookingCandidate) {
+        this.logger.debug(`SeatsAero trips response for ${availabilityId} did not contain a booking URL`);
+        return null;
+      }
+
+      const sanitized = this.sanitizeBookingUrl(bookingCandidate);
+      if (!sanitized) {
+        this.logger.warn(`SeatsAero trips booking URL for ${availabilityId} was not a valid HTTPS link`);
+        return null;
+      }
+
+      if (!this.isValidBookingUrl(sanitized)) {
+        this.logger.warn(`SeatsAero trips booking host not trusted for ${availabilityId}: ${sanitized}`);
+        return null;
+      }
+
+      return sanitized;
+    } catch (error) {
+      const normalized = this.normalizeAxiosError(error);
+      this.logger.warn(
+        `Failed to fetch booking URL for SeatsAero availability ${availabilityId}: ${normalized.message}`,
+        normalized,
+      );
+      return null;
+    }
   }
 
   private normalizeProgramList(options: SeatsAeroPartnerSearchOptions): string[] {
@@ -840,6 +922,88 @@ export class SeatsAeroPartnerService {
     }
 
     return undefined;
+  }
+
+  private extractBookingUrlFromTripsResponse(tripsData: unknown): string | null {
+    if (!tripsData || typeof tripsData !== 'object') {
+      return null;
+    }
+
+    const possibleFields = [
+      'bookingUrl',
+      'BookingUrl',
+      'bookingURL',
+      'BookingURL',
+      'bookUrl',
+      'BookUrl',
+      'bookURL',
+      'BookURL',
+      'link',
+      'Link',
+      'url',
+      'Url',
+      'URL',
+      'deepLink',
+      'DeepLink',
+      'deeplink',
+      'Deeplink',
+    ];
+
+    const visited = new Set<unknown>();
+    const stack: unknown[] = [tripsData];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current || typeof current !== 'object') {
+        continue;
+      }
+
+      if (visited.has(current)) {
+        continue;
+      }
+      visited.add(current);
+
+      if (Array.isArray(current)) {
+        stack.push(...current);
+        continue;
+      }
+
+      const record = current as Record<string, unknown>;
+      for (const field of possibleFields) {
+        const candidate = record[field];
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+          return candidate;
+        }
+      }
+
+      for (const value of Object.values(record)) {
+        if (value && typeof value === 'object') {
+          stack.push(value);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private isValidBookingUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') {
+        return false;
+      }
+
+      return this.isTrustedBookingHost(parsed.hostname);
+    } catch {
+      return false;
+    }
+  }
+
+  private isTrustedBookingHost(hostname: string): boolean {
+    const normalized = hostname.toLowerCase();
+    return TRUSTED_BOOKING_HOSTS.some(
+      (allowed) => normalized === allowed || normalized.endsWith(`.${allowed}`),
+    );
   }
 
   private tryParseUrl(value: string): string | undefined {

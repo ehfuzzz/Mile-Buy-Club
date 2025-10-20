@@ -10,6 +10,7 @@ import type {
   DealPricingOption,
   DealPricingOptionType,
 } from "../../lib/deals";
+import { api } from "../../lib/api";
 
 interface DealCardProps {
   deal: Deal;
@@ -103,6 +104,7 @@ interface ValidatedBookingUrl {
 
 export function DealCard({ deal, view = "grid" }: DealCardProps) {
   const [isBooking, setIsBooking] = useState(false);
+  const [resolvedBooking, setResolvedBooking] = useState<ValidatedBookingUrl | null>(null);
 
   const departure = deal.route.departure ? new Date(deal.route.departure) : null;
   const arrival = deal.route.arrival ? new Date(deal.route.arrival) : null;
@@ -129,17 +131,23 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
     [deal.bookingUrl, awardOption?.bookingUrl, cashOption?.bookingUrl, hybridOption?.bookingUrl],
   );
 
-  const validatedBooking = useMemo(
-    () =>
-      validateBookingUrls(bookingCandidates, {
-        airline: deal.airline,
-        program: providerProgram,
-      }),
-    [bookingCandidates, deal.airline, providerProgram],
-  );
+  const validatedBooking = useMemo(() => {
+    if (resolvedBooking) {
+      return resolvedBooking;
+    }
+
+    return validateBookingUrls(bookingCandidates, {
+      airline: deal.airline,
+      program: providerProgram,
+    });
+  }, [resolvedBooking, bookingCandidates, deal.airline, providerProgram]);
 
   useEffect(() => {
-    if (!validatedBooking && bookingCandidates.length > 0) {
+    setResolvedBooking(null);
+  }, [deal.id]);
+
+  useEffect(() => {
+    if (!resolvedBooking && !validatedBooking && bookingCandidates.length > 0) {
       console.warn("Discarded invalid booking URL for deal", {
         id: deal.id,
         airline: deal.airline,
@@ -147,9 +155,8 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
         bookingCandidates,
       });
     }
-  }, [validatedBooking, bookingCandidates, deal.id, deal.airline, deal.provider]);
+  }, [resolvedBooking, validatedBooking, bookingCandidates, deal.id, deal.airline, deal.provider]);
 
-  const bookingUrl = validatedBooking?.url ?? null;
   const bookingHostLabel = validatedBooking ? formatHostForLabel(validatedBooking.displayHost) : null;
   const friendlyAirlineName = useMemo(
     () =>
@@ -161,11 +168,85 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
 
   const buttonDestinationLabel = bookingHostLabel ?? friendlyAirlineName ?? "Airline site";
   const tooltipAirlineLabel = friendlyAirlineName ?? buttonDestinationLabel;
+  const canAttemptBooking = Boolean(deal.id);
   const bookingTooltip = validatedBooking
     ? `Open ${tooltipAirlineLabel} (${validatedBooking.displayHost}) in a new tab`
+    : canAttemptBooking
+    ? "Fetch live booking link"
     : "Booking link unavailable";
-  const bookingButtonLabel = validatedBooking ? `Book on ${buttonDestinationLabel}` : "Booking unavailable";
-  const hasBookingUrl = Boolean(bookingUrl);
+  const bookingButtonLabel = validatedBooking
+    ? `Book on ${buttonDestinationLabel}`
+    : canAttemptBooking
+    ? "Book now"
+    : "Booking unavailable";
+
+  const handleBookNow = useCallback(async () => {
+    if (!canAttemptBooking || isBooking) {
+      return;
+    }
+
+    const confirmationLabel = tooltipAirlineLabel ?? buttonDestinationLabel ?? "the airline site";
+    const confirmed = window.confirm(
+      `You'll be redirected to ${confirmationLabel} to complete your booking. Continue?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsBooking(true);
+
+    try {
+      const { success, data, error } = await api.get<{ bookingUrl: string | null }>(
+        `/deals/${encodeURIComponent(deal.id)}/booking-url`,
+      );
+
+      if (!success) {
+        throw new Error(error?.message ?? "Unable to fetch booking URL");
+      }
+
+      const context: BookingValidationContext = {
+        airline: deal.airline,
+        program: providerProgram,
+      };
+
+      const remoteBooking = data?.bookingUrl
+        ? validateBookingUrls([data.bookingUrl], context)
+        : null;
+
+      if (!remoteBooking && data?.bookingUrl) {
+        console.warn("Discarded remote SeatsAero booking URL", {
+          dealId: deal.id,
+          airline: deal.airline,
+          program: providerProgram,
+          bookingUrl: data.bookingUrl,
+        });
+      }
+
+      const finalBooking = remoteBooking ?? validatedBooking;
+
+      if (finalBooking) {
+        setResolvedBooking(finalBooking);
+        window.open(finalBooking.url, "_blank", "noopener,noreferrer");
+      } else {
+        window.alert("Booking URL not available for this flight. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error fetching booking URL", error);
+      window.alert("Unable to retrieve booking information. Please try again later.");
+    } finally {
+      setIsBooking(false);
+    }
+  }, [
+    canAttemptBooking,
+    isBooking,
+    tooltipAirlineLabel,
+    buttonDestinationLabel,
+    deal.id,
+    deal.airline,
+    providerProgram,
+    validatedBooking,
+  ]);
 
   const handleBookNow = useCallback(() => {
     if (!validatedBooking) {
@@ -265,7 +346,7 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
         </div>
         <div className="text-xs text-slate-500">Availability: {availabilityLabel}</div>
         <div className="flex flex-col gap-2 pt-2">
-          {hasBookingUrl ? (
+          {canAttemptBooking ? (
             <button
               type="button"
               onClick={handleBookNow}
