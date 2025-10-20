@@ -446,6 +446,46 @@ export class SeatsAeroPartnerService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  getDiagnostics() {
+    return {
+      baseUrl: this.baseUrl,
+      configuredBaseUrl: this.rawBaseUrl ?? null,
+      timeoutMs: this.timeoutMs,
+      hasApiKey: Boolean(this.apiKey),
+    };
+  }
+
+  describeError(error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const requestUrl = this.resolveRequestUrl(axiosError);
+
+      return {
+        type: 'axios',
+        message: axiosError.message,
+        code: axiosError.code ?? null,
+        status: axiosError.response?.status ?? null,
+        data: axiosError.response?.data ?? null,
+        requestUrl,
+        method: axiosError.config?.method ?? null,
+      };
+    }
+
+    if (error instanceof Error) {
+      return {
+        type: 'error',
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      };
+    }
+
+    return {
+      type: 'unknown',
+      message: 'Unable to describe error',
+    };
+  }
+
   private extractDeals(payload: SeatsAeroPartnerSearchResponse): SeatsAeroPartnerDeal[] {
     if (Array.isArray(payload.data)) {
       // Handle bulk availability format

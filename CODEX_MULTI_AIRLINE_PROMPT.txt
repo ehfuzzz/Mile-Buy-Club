@@ -1,0 +1,93 @@
+SeatsAero Multi-Airline Integration Enhancement
+
+CURRENT ISSUE:
+The SeatsAero integration is currently only returning flights from United Airlines because the service is hardcoded to use `source=united` in the search parameters. We need to modify the system to fetch flight data from ALL available airlines/programs.
+
+AVAILABLE AIRLINES:
+Based on the SeatsAero API documentation, there are 24+ airlines/programs available:
+- american (American Airlines)
+- delta (Delta SkyMiles) 
+- united (United MileagePlus)
+- aeroplan (Air Canada Aeroplan)
+- alaska (Alaska Mileage Plan)
+- velocity (Virgin Australia Velocity)
+- qantas (Qantas Frequent Flyer)
+- flyingblue (Air France/KLM Flying Blue)
+- jetblue (JetBlue TrueBlue)
+- emirates (Emirates Skywards)
+- etihad (Etihad Guest)
+- qatar (Qatar Privilege Club)
+- singapore (Singapore KrisFlyer)
+- lufthansa (Lufthansa Miles&More)
+- turkish (Turkish Miles & Smiles)
+- finnair (Finnair Plus)
+- ethiopian (Ethiopian ShebaMiles)
+- saudia (Saudi AlFursan)
+- eurobonus (SAS EuroBonus)
+- virginatlantic (Virgin Atlantic Flying Club)
+- aeromexico (Aeromexico Club Premier)
+- connectmiles (Copa ConnectMiles)
+- azul (Azul TudoAzul)
+- smiles (GOL Smiles)
+
+CURRENT IMPLEMENTATION:
+The SeatsAeroPartnerService.search() method is hardcoded:
+```typescript
+const params: Record<string, string | number | undefined> = {
+  take: options.take && options.take > 0 ? Math.min(options.take, 200) : 50,
+  skip: options.skip,
+  source: options.program || 'united', // Default to United for now
+};
+```
+
+REQUIRED CHANGES:
+
+1. **Modify SeatsAeroPartnerService.search() method:**
+   - Remove the hardcoded `source=united` parameter
+   - When no specific program is requested, make multiple API calls to fetch from all available airlines
+   - Combine results from all airlines into a single response
+   - Handle rate limiting appropriately (30 RPM, 500 RPH)
+
+2. **Implement multi-airline fetching logic:**
+   - Create a method to fetch from multiple airlines in parallel or sequentially
+   - Aggregate results from all airlines
+   - Remove duplicates if any
+   - Sort results by score/quality
+
+3. **Update the search parameters:**
+   - Allow the API to accept a list of airlines to search
+   - Default to searching all airlines when none specified
+   - Maintain backward compatibility for single airline searches
+
+4. **Handle rate limiting:**
+   - Implement proper rate limiting across multiple API calls
+   - Add delays between requests if needed
+   - Respect the 30 RPM, 500 RPH limits
+
+5. **Error handling:**
+   - If one airline fails, continue with others
+   - Log which airlines failed and which succeeded
+   - Return partial results if some airlines fail
+
+EXPECTED BEHAVIOR:
+- `/deals` endpoint should return flights from multiple airlines (American, Delta, United, Air Canada, etc.)
+- Each deal should clearly indicate which airline/program it's from
+- Results should be sorted by best deals/score
+- No hardcoded airline limitations
+
+FILES TO MODIFY:
+1. `apps/api/src/deals/seats-aero-partner.service.ts` - Main service logic
+2. `apps/api/src/deals/deals.service.ts` - Integration with deals service
+3. Consider adding airline filtering options to the API
+
+TESTING:
+After implementation, test that:
+- `/deals` returns flights from multiple airlines
+- Each deal has the correct airline/program information
+- Rate limiting is respected
+- Error handling works for failed airlines
+- Performance is acceptable with multiple API calls
+
+PRIORITY: HIGH - This will significantly expand the flight deals available to users.
+
+The goal is to transform the current single-airline (United only) system into a comprehensive multi-airline flight search that shows the best award deals across all major airlines and programs.
