@@ -20,7 +20,14 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
   const hybridOption = findOption(deal.pricing.options, "points_plus_cash");
   const badges = buildBadges(deal, availabilityLabel);
   const primaryPricingLabel = describePricing(deal.pricing.primaryType);
-  const bookingUrl = deal.bookingUrl ?? awardOption?.bookingUrl ?? cashOption?.bookingUrl ?? hybridOption?.bookingUrl ?? "#";
+  const bookingUrl = sanitizeBookingUrl(
+    deal.bookingUrl ??
+      awardOption?.bookingUrl ??
+      cashOption?.bookingUrl ??
+      hybridOption?.bookingUrl ??
+      null,
+  );
+  const hasBookingUrl = Boolean(bookingUrl);
 
   return (
     <article
@@ -96,14 +103,24 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
         </div>
         <div className="text-xs text-slate-500">Availability: {availabilityLabel}</div>
         <div className="flex flex-col gap-2 pt-2">
-          <a
-            href={bookingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            Book now
-          </a>
+          {hasBookingUrl ? (
+            <a
+              href={bookingUrl as string}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Book now
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center justify-center rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-500"
+            >
+              Booking unavailable
+            </button>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
@@ -122,6 +139,28 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
       </div>
     </article>
   );
+}
+
+function sanitizeBookingUrl(url: string | null | undefined): string | null {
+  if (!url) {
+    return null;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 function getScoreColor(score: number) {

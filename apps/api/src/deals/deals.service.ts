@@ -1,6 +1,64 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Deal, Prisma, Watcher } from '@prisma/client';
-// Temporarily define types locally to avoid module resolution issues
+import { PrismaService } from '../common/prisma/prisma.service';
+import { SeatsAeroPartnerDeal, SeatsAeroPartnerSegment, SeatsAeroPartnerService } from './seats-aero-partner.service';
+
+// Temporarily define types locally to avoid module resolution issues caused by the
+// lightweight Prisma client stub that ships with this repository. The runtime
+// shape of these records matches the schema in `packages/database/prisma/schema.prisma`.
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+type JsonObject = { [key: string]: JsonValue };
+
+interface WatcherSummary {
+  id: string;
+  name: string | null;
+}
+
+interface DealRecord {
+  id: string;
+  watcherId: string;
+  userId: string;
+  externalId: string;
+  title: string;
+  description: string | null;
+  type: string;
+  origin: string | null;
+  destination: string | null;
+  departDate: Date | null;
+  returnDate: Date | null;
+  cabin: string | null;
+  airline: string | null;
+  availability: number | null;
+  price: number;
+  currency: string;
+  basePrice: number | null;
+  taxes: number | null;
+  cashPrice: number | null;
+  cashCurrency: string | null;
+  pointsCashPrice: number | null;
+  pointsCashCurrency: string | null;
+  pointsCashMiles: number | null;
+  primaryPricingType: string | null;
+  pricingOptions: JsonValue | null;
+  milesRequired: number | null;
+  cpp: number | null;
+  value: number | null;
+  score: number;
+  scoreBreakdown: JsonValue | null;
+  bookingUrl: string | null;
+  provider: string | null;
+  status: string;
+  isNew: boolean;
+  rawData: JsonValue | null;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date | null;
+  watcher?: WatcherSummary | null;
+}
+
+type DealWithWatcher = DealRecord;
+
 export type FlightPricingOptionType = 'cash' | 'award' | 'mixed';
 export interface FlightPricingOption {
   type: FlightPricingOptionType;
@@ -56,8 +114,6 @@ export interface Flight {
   segments?: FlightSegment[];
   pricingOptions?: FlightPricingOption[];
 }
-import { PrismaService } from '../common/prisma/prisma.service';
-import { SeatsAeroPartnerDeal, SeatsAeroPartnerSegment, SeatsAeroPartnerService } from './seats-aero-partner.service';
 
 export interface DealPricingOptionView {
   type: FlightPricingOptionType;
@@ -154,11 +210,18 @@ export class DealsService {
     return fallback.id;
   }
 
-  async listDeals(userId?: string, limit = 100): Promise<DealsListResponse> {
+  async listDeals(
+    userId?: string,
+    limit = 100,
+    programs?: string[],
+  ): Promise<DealsListResponse> {
     const take = limit && limit > 0 ? Math.min(limit, 200) : 100;
 
     try {
-      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({ take });
+      const { deals: liveDeals } = await this.seatsAeroPartnerService.search({
+        take,
+        programs,
+      });
       const mappedDeals = liveDeals.map((deal) => this.mapPartnerDeal(deal));
       const watcherCount =
         mappedDeals.length > 0 ? new Set(mappedDeals.map((deal) => deal.watcherId)).size : 0;
@@ -183,7 +246,7 @@ export class DealsService {
     limit = 100,
   ): Promise<DealsListResponse> {
     const resolvedUserId = await this.resolveUserId(userId);
-    const records = await this.prisma.deal.findMany({
+    const records = (await this.prisma.deal.findMany({
       where: { watcherId, userId: resolvedUserId, status: 'active' },
       orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
       take: limit,
@@ -192,7 +255,7 @@ export class DealsService {
           select: { id: true, name: true },
         },
       },
-    });
+    })) as DealWithWatcher[];
 
     const deals = records.map((deal) => this.toDealView(deal));
 
@@ -208,7 +271,7 @@ export class DealsService {
 
   private async listDealsFromDatabase(userId: string | undefined, limit = 100): Promise<DealsListResponse> {
     const resolvedUserId = await this.resolveUserId(userId);
-    const records = await this.prisma.deal.findMany({
+    const records = (await this.prisma.deal.findMany({
       where: { userId: resolvedUserId, status: 'active' },
       orderBy: [{ score: 'desc' }, { createdAt: 'desc' }],
       take: limit,
@@ -217,7 +280,7 @@ export class DealsService {
           select: { id: true, name: true },
         },
       },
-    });
+    })) as DealWithWatcher[];
 
     const deals = records.map((deal) => this.toDealView(deal));
     const watcherCount = new Set(deals.map((deal) => deal.watcherId)).size;
@@ -446,9 +509,7 @@ export class DealsService {
     return aircraft.length > 0 ? Array.from(new Set(aircraft)) : null;
   }
 
-  toDealView(
-    deal: Deal & { watcher?: Pick<Watcher, 'id' | 'name'> | null },
-  ): DealView {
+  toDealView(deal: DealWithWatcher): DealView {
     const raw = this.parseRawFlight(deal.rawData);
     const options = this.normalizePricingOptions(deal.pricingOptions, deal.provider ?? raw?.provider ?? undefined);
     const route = this.buildRoute(deal, raw);
@@ -489,14 +550,14 @@ export class DealsService {
     };
   }
 
-  private parseRawFlight(raw: Prisma.JsonValue | null): Flight | null {
+  private parseRawFlight(raw: JsonValue | null): Flight | null {
     if (!raw || typeof raw !== 'object') {
       return null;
     }
     return raw as unknown as Flight;
   }
 
-  private buildRoute(deal: Deal, raw: Flight | null): DealRouteView {
+  private buildRoute(deal: DealRecord, raw: Flight | null): DealRouteView {
     const segments = Array.isArray(raw?.segments) ? (raw?.segments as FlightSegment[]) : [];
     const stops = segments.length > 0 ? segments.length - 1 : null;
     const departure = raw?.departureTime ?? (deal.departDate ? deal.departDate.toISOString() : null);
@@ -531,7 +592,7 @@ export class DealsService {
   }
 
   private normalizePricingOptions(
-    raw: Prisma.JsonValue | null,
+    raw: JsonValue | null,
     fallbackProvider?: string,
   ): DealPricingOptionView[] {
     if (!Array.isArray(raw)) {
@@ -563,7 +624,7 @@ export class DealsService {
       .filter(Boolean) as DealPricingOptionView[];
   }
 
-  private normalizeRecord(value: Prisma.JsonValue | null): Record<string, unknown> | null {
+  private normalizeRecord(value: JsonValue | null): Record<string, unknown> | null {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
@@ -571,19 +632,30 @@ export class DealsService {
   }
 
   async debugSeatsAero() {
+    const diagnostics = this.seatsAeroPartnerService.getDiagnostics();
+    const params = { take: 1 };
+
     try {
-      const result = await this.seatsAeroPartnerService.search({ take: 1 });
+      const result = await this.seatsAeroPartnerService.search(params);
       return {
         success: true,
         message: 'SeatsAero service working',
         deals: result.deals,
         total: result.total,
+        diagnostics,
       };
     } catch (error) {
+      const underlying =
+        error instanceof Error && 'cause' in error && (error as Error & { cause?: unknown }).cause
+          ? (error as Error & { cause?: unknown }).cause
+          : error;
+
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Unknown error',
-        error: error instanceof Error ? error.stack : undefined,
+        diagnostics,
+        attemptedParams: params,
+        error: this.seatsAeroPartnerService.describeError(underlying),
       };
     }
   }
