@@ -16,7 +16,6 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { LocationsService, ResolveLocationInput } from './locations.service';
 import {
   onboardingExtractionSchema,
-  onboardingExtractionJsonSchema,
   OnboardingExtraction,
   normalizeCabin,
   normalizeAlertMode,
@@ -196,10 +195,6 @@ export class OnboardingService {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: transcript },
       ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: onboardingExtractionJsonSchema as any,
-      },
       temperature: 0,
       max_output_tokens: 2000,
     });
