@@ -5,12 +5,12 @@ export declare const locationSchema: z.ZodObject<{
     code: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     name: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     kind: "AIRPORT" | "CITY" | "REGION";
+    name: string;
     code?: string | null | undefined;
 }, {
-    name: string;
     kind: "AIRPORT" | "CITY" | "REGION";
+    name: string;
     code?: string | null | undefined;
 }>;
 export declare const onboardingExtractionSchema: z.ZodObject<{
@@ -19,12 +19,12 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
         code: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         name: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        name: string;
         kind: "AIRPORT" | "CITY" | "REGION";
+        name: string;
         code?: string | null | undefined;
     }, {
-        name: string;
         kind: "AIRPORT" | "CITY" | "REGION";
+        name: string;
         code?: string | null | undefined;
     }>, "many">>;
     open_jaw_ok: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
@@ -45,12 +45,12 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
             code: z.ZodOptional<z.ZodNullable<z.ZodString>>;
             name: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }, {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }>, "many">>;
         avoid: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -58,34 +58,34 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
             code: z.ZodOptional<z.ZodNullable<z.ZodString>>;
             name: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }, {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
         avoid: {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }[];
         wish: {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }[];
     }, {
         avoid?: {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }[] | undefined;
         wish?: {
-            name: string;
             kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
             code?: string | null | undefined;
         }[] | undefined;
     }>>;
@@ -191,34 +191,34 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
         mode: z.ZodOptional<z.ZodNullable<z.ZodEnum<["HIGH_QUALITY", "DIGEST"]>>>;
         timezone: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, "strip", z.ZodTypeAny, {
-        timezone?: string | null | undefined;
         mode?: "HIGH_QUALITY" | "DIGEST" | null | undefined;
+        timezone?: string | null | undefined;
     }, {
-        timezone?: string | null | undefined;
         mode?: "HIGH_QUALITY" | "DIGEST" | null | undefined;
+        timezone?: string | null | undefined;
     }>>;
     raw_free_text: z.ZodDefault<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
-    destinations: {
-        avoid: {
-            name: string;
-            kind: "AIRPORT" | "CITY" | "REGION";
-            code?: string | null | undefined;
-        }[];
-        wish: {
-            name: string;
-            kind: "AIRPORT" | "CITY" | "REGION";
-            code?: string | null | undefined;
-        }[];
-    };
     home_bases: {
-        name: string;
         kind: "AIRPORT" | "CITY" | "REGION";
+        name: string;
         code?: string | null | undefined;
     }[];
     travel_window: {
         flex_days?: number | null | undefined;
         typical_trip_len_days?: number[] | null | undefined;
+    };
+    destinations: {
+        avoid: {
+            kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
+            code?: string | null | undefined;
+        }[];
+        wish: {
+            kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
+            code?: string | null | undefined;
+        }[];
     };
     styles: ("CITY" | "BEACH" | "NATURE" | "NIGHTLIFE" | "KID_FRIENDLY" | "PACE_CHILL" | "PACE_PACKED")[];
     interests: {
@@ -261,28 +261,16 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
     }[];
     cards: string[];
     notifications: {
-        timezone?: string | null | undefined;
         mode?: "HIGH_QUALITY" | "DIGEST" | null | undefined;
+        timezone?: string | null | undefined;
     };
     raw_free_text: string;
     open_jaw_ok?: boolean | null | undefined;
     mixed_airlines_ok?: boolean | null | undefined;
 }, {
-    destinations?: {
-        avoid?: {
-            name: string;
-            kind: "AIRPORT" | "CITY" | "REGION";
-            code?: string | null | undefined;
-        }[] | undefined;
-        wish?: {
-            name: string;
-            kind: "AIRPORT" | "CITY" | "REGION";
-            code?: string | null | undefined;
-        }[] | undefined;
-    } | undefined;
     home_bases?: {
-        name: string;
         kind: "AIRPORT" | "CITY" | "REGION";
+        name: string;
         code?: string | null | undefined;
     }[] | undefined;
     open_jaw_ok?: boolean | null | undefined;
@@ -290,6 +278,18 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
     travel_window?: {
         flex_days?: number | null | undefined;
         typical_trip_len_days?: number[] | null | undefined;
+    } | undefined;
+    destinations?: {
+        avoid?: {
+            kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
+            code?: string | null | undefined;
+        }[] | undefined;
+        wish?: {
+            kind: "AIRPORT" | "CITY" | "REGION";
+            name: string;
+            code?: string | null | undefined;
+        }[] | undefined;
     } | undefined;
     styles?: ("CITY" | "BEACH" | "NATURE" | "NIGHTLIFE" | "KID_FRIENDLY" | "PACE_CHILL" | "PACE_PACKED")[] | undefined;
     interests?: {
@@ -332,8 +332,8 @@ export declare const onboardingExtractionSchema: z.ZodObject<{
     }[] | undefined;
     cards?: string[] | undefined;
     notifications?: {
-        timezone?: string | null | undefined;
         mode?: "HIGH_QUALITY" | "DIGEST" | null | undefined;
+        timezone?: string | null | undefined;
     } | undefined;
     raw_free_text?: string | undefined;
 }>;

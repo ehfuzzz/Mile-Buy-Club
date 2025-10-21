@@ -4,7 +4,6 @@ exports.normalizeCabin = normalizeCabin;
 exports.normalizeAlertMode = normalizeAlertMode;
 exports.normalizeAlliance = normalizeAlliance;
 exports.normalizePrefMode = normalizePrefMode;
-const zod_1 = require("zod");
 const CABIN_MAP = {
     economy: 'Y',
     coach: 'Y',
@@ -64,13 +63,11 @@ function normalizeCabin(value) {
     if (CABIN_MAP[normalized]) {
         return CABIN_MAP[normalized];
     }
-    try {
-        const directSchema = zod_1.z.enum(['Y', 'W', 'J', 'F']);
-        return directSchema.parse(normalized.toUpperCase());
+    const direct = normalized.toUpperCase();
+    if (direct === 'Y' || direct === 'W' || direct === 'J' || direct === 'F') {
+        return direct;
     }
-    catch {
-        return null;
-    }
+    return null;
 }
 function normalizeAlertMode(value) {
     const normalized = normalizeKey(value);

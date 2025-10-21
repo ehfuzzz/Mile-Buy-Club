@@ -5,11 +5,12 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     "outDir": "./dist",
+    "rootDir": "./src",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "@mile/shared": ["../../packages/shared/src"],
-      "@mile/shared/*": ["../../packages/shared/src/*"]
+      "@mile/shared": ["../../packages/shared/dist"],
+      "@mile/shared/*": ["../../packages/shared/dist/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -30,8 +31,6 @@
     "src/ai/**/*",
     "src/jobs/**/*",
     "src/notifications/**/*",
-    "src/watchers/**/*",
-    "src/onboarding/**/*",
-    "src/cards/**/*"
+    "src/watchers/**/*"
   ]
 }
