@@ -1,0 +1,282 @@
+# Fix Monorepo Module Resolution Issues for Onboarding Feature
+
+## Problem Summary
+The backend API compiles successfully (0 TypeScript errors!) but fails to start due to runtime **module resolution errors** when trying to load the `@mile/shared` package. The onboarding and cards modules have been temporarily disabled to isolate this issue.
+
+## Current Status
+✅ **Backend Compilation**: Successful (0 errors with `npm run build`)
+✅ **Deals System**: Working perfectly (SeatsAero integration, booking URLs, etc.)
+✅ **Frontend**: Running on port 3000
+❌ **Backend Runtime**: Fails to start with module resolution errors
+❌ **Onboarding API**: Not accessible (module disabled)
+
+## Root Cause
+The monorepo has a **mixed module system** architecture issue:
+- **Backend API** (`apps/api`): Uses **CommonJS** (`module: "commonjs"`)
+- **Shared Package** (`packages/shared`): Contains **TypeScript source files** that need to be transpiled and properly exported
+
+When the backend tries to run, it attempts to import from `@mile/shared`, which triggers Node.js ESM loader to import from `packages/shared/src/index.ts`. However:
+1. The loader tries to import TypeScript source files directly (not JavaScript)
+2. Directory imports like `export * from './card-engine'` fail with `ERR_UNSUPPORTED_DIR_IMPORT`
+3. The `logger` module import fails with `ERR_MODULE_NOT_FOUND`
+
+## Error Messages
+
+### Error 1: Directory Import Not Supported
+```
+Error [ERR_UNSUPPORTED_DIR_IMPORT]: Directory import '/Users/ehfuzzz/Desktop/Mile Buy Club/packages/shared/src/card-engine' is not supported resolving ES modules imported from /Users/ehfuzzz/Desktop/Mile Buy Club/packages/shared/src/index.ts
+```
+
+**Occurs in:** `packages/shared/src/index.ts` when trying to `export * from './card-engine'`
+
+### Error 2: Logger Module Not Found (Already Fixed Locally)
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/ehfuzzz/Desktop/Mile Buy Club/packages/shared/src/logger'
+```
+
+**Temporary Fix Applied:** Commented out logger export in `packages/shared/src/index.ts`
+
+## Files Involved
+
+### 1. `/packages/shared/package.json`
+Current configuration:
+```json
+{
+  "name": "@mile/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  ...
+}
+```
+
+**Issue**: Points to TypeScript source instead of compiled JavaScript
+
+### 2. `/packages/shared/src/index.ts`
+Current exports:
+```typescript
+// Logger export temporarily disabled due to module resolution issues
+// export { createLogger, maskSensitiveData } from './logger';
+export * from './card-engine';
+export * from './value-engine';
+export * from './schemas/onboarding';
+export * from './maps/enumMap';
+export * from './maps/airlineMap';
+```
+
+**Issue**: Directory imports not supported in Node.js ESM
+
+### 3. `/apps/api/tsconfig.json`
+Current configuration (recently fixed):
+```json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "outDir": "./dist",
+    // "rootDir": "./src", // REMOVED to allow monorepo imports
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@mile/shared": ["../../packages/shared/src"],
+      "@mile/shared/*": ["../../packages/shared/src/*"]
+    },
+    ...
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*spec.ts",
+    "src/ai/**/*",
+    "src/jobs/**/*",
+    "src/notifications/**/*",
+    "src/watchers/**/*",
+    "src/onboarding/**/*",  // Temporarily excluded
+    "src/cards/**/*"         // Temporarily excluded
+  ]
+}
+```
+
+### 4. `/apps/api/src/app.module.ts`
+```typescript
+// import { OnboardingModule } from './onboarding/onboarding.module';
+
+@Module({
+  imports: [
+    // ... other modules ...
+    // OnboardingModule, // Temporarily disabled due to module resolution issues
+  ],
+})
+```
+
+## Affected Modules
+
+### Onboarding Service (`apps/api/src/onboarding/onboarding.service.ts`)
+Imports from `@mile/shared`:
+```typescript
+import {
+  onboardingExtractionSchema,
+  OnboardingExtraction,
+  normalizeCabin,
+  normalizeAlertMode,
+  normalizeAlliance,
+  resolveAirlineCode,
+} from '@mile/shared';
+```
+
+### Cards Service (`apps/api/src/cards/cards.service.ts`)
+Imports from `@mile/shared`:
+```typescript
+import { ... } from '@mile/shared/src/card-engine';
+```
+
+## Proposed Solutions
+
+### **Option 1: Build and Export Compiled JavaScript (RECOMMENDED)**
+
+This is the standard monorepo approach used by projects like Nx, Turborepo, and Lerna.
+
+**Step 1:** Add a build script to `packages/shared/package.json`:
+```json
+{
+  "name": "@mile/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist"
+  }
+}
+```
+
+**Step 2:** Create `packages/shared/tsconfig.json`:
+```json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}
+```
+
+**Step 3:** Update `packages/shared/src/index.ts` to use explicit file extensions:
+```typescript
+export { createLogger, maskSensitiveData } from './logger.js';
+export * from './card-engine/index.js';
+export * from './value-engine/index.js';
+export * from './schemas/onboarding.js';
+export * from './maps/enumMap.js';
+export * from './maps/airlineMap.js';
+```
+
+**Step 4:** Create barrel export files for subdirectories:
+- `packages/shared/src/card-engine/index.ts`
+- `packages/shared/src/value-engine/index.ts`
+
+**Step 5:** Build the shared package before running the API:
+```bash
+cd packages/shared && npm run build
+cd ../../apps/api && npm run dev
+```
+
+**Step 6:** Re-enable the onboarding and cards modules:
+- Remove exclusions from `apps/api/tsconfig.json`
+- Uncomment imports in `apps/api/src/app.module.ts`
+
+### **Option 2: Use ts-node for Development**
+
+Switch the API to use `ts-node` in development mode, which can handle TypeScript source files directly.
+
+**Step 1:** Install `ts-node`:
+```bash
+npm install --save-dev ts-node
+```
+
+**Step 2:** Update `apps/api/package.json`:
+```json
+{
+  "scripts": {
+    "dev": "nest start --watch --exec 'node --require ts-node/register'",
+  }
+}
+```
+
+**Step 3:** Configure `ts-node` in `apps/api/tsconfig.json`:
+```json
+{
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true
+  }
+}
+```
+
+### **Option 3: Inline Shared Code (NOT RECOMMENDED)**
+
+Copy the shared code directly into the API project. This defeats the purpose of a monorepo but would work as a temporary workaround.
+
+## Testing After Fixes
+
+Once the module resolution is fixed, verify:
+
+1. **Backend starts successfully:**
+   ```bash
+   cd apps/api && npm run dev
+   ```
+   Should see: `Nest application successfully started`
+
+2. **Onboarding endpoint is accessible:**
+   ```bash
+   curl -X POST http://localhost:3001/onboarding/session \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "test-user"}'
+   ```
+   Should return: `{"id": "<session-id>"}`
+
+3. **Frontend can access onboarding:**
+   Visit `http://localhost:3000/onboarding` - should see chat interface
+
+4. **Deals system still works:**
+   ```bash
+   curl http://localhost:3001/deals/list
+   ```
+   Should return deals data
+
+## Additional Context
+
+- **OpenAI API Key**: Already configured in `.env` for LLM extraction
+- **Database Schema**: Already updated with onboarding models via Prisma migrations
+- **Frontend**: Already has onboarding UI at `/apps/web/app/onboarding/page.tsx`
+- **Previous Fixes**: TypeScript compilation errors (4 total) have all been resolved
+
+## Expected Outcome
+
+After implementing one of the proposed solutions:
+- ✅ Backend starts without errors
+- ✅ Onboarding endpoints accessible at `/onboarding/*`
+- ✅ Cards endpoints accessible
+- ✅ Deals system continues to work
+- ✅ Frontend can use the onboarding feature
+- ✅ LLM-powered user profile extraction works with OpenAI API
+
+## Recommendation
+
+**Use Option 1 (Build and Export Compiled JavaScript)** as it's the industry-standard approach for TypeScript monorepos and will ensure long-term maintainability. This is how major projects like NestJS, Next.js monorepos, and Turborepo handle shared packages.
+
+Please implement Option 1 and ensure all tests pass. If you encounter any issues with the build process, fall back to Option 2 (ts-node) as a temporary development solution.
+
