@@ -5,8 +5,9 @@ import {
   UserProfile,
   GapAnalyzer,
   CreditCard,
-} from '@mile/shared/src/card-engine';
-import { createLogger } from '@mile/shared/src/logger';
+  cardDatabase,
+  createLogger,
+} from '@mile/shared';
 import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('CardsService');
@@ -120,7 +121,6 @@ export class CardsService {
    * Get all available cards
    */
   async getAllCards(): Promise<CreditCard[]> {
-    const { cardDatabase } = await import('@mile/shared/src/card-engine');
     return (cardDatabase.cards as CreditCard[]).map((card) => ({
       ...card,
       id: card.cardId ?? card.id,
@@ -131,7 +131,6 @@ export class CardsService {
    * Get card details by ID
    */
   async getCardById(cardId: string): Promise<CreditCard> {
-    const { cardDatabase } = await import('@mile/shared/src/card-engine');
     const cards = cardDatabase.cards as CreditCard[];
     const card = cards.find((c) => (c.cardId ?? c.id) === cardId);
 

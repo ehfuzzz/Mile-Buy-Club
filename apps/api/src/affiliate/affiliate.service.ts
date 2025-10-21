@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { createLogger } from '@mile/shared/src/logger';
+import { createLogger } from '@mile/shared';
 import { LinkGenerator } from './link-generator';
 import { AttributionService } from './attribution.service';
 import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';

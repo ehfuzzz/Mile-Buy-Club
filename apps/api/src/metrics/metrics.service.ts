@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
-import { createLogger } from '@mile/shared/src/logger';
+import { createLogger } from '@mile/shared';
 
 const logger = createLogger('Metrics');
 
