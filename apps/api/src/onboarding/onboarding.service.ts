@@ -46,11 +46,20 @@ export class OnboardingService {
   ) {}
 
   async createSession(dto: CreateSessionDto) {
-    return this.prisma.onboardingSession.create({
-      data: {
-        userId: dto.userId,
-      },
-    });
+    await this.ensureUserExists(dto.userId);
+
+    try {
+      const session = await this.prisma.onboardingSession.create({
+        data: {
+          userId: dto.userId,
+        },
+      });
+
+      this.logger.log(`Created onboarding session ${session.id} for user ${dto.userId}`);
+      return session;
+    } catch (error) {
+      this.handlePrismaError('createSession', error, dto.userId);
+    }
   }
 
   async appendMessage(dto: OnboardingMessageDto) {
@@ -573,5 +582,32 @@ export class OnboardingService {
         cardId,
       })),
     });
+  }
+
+  private async ensureUserExists(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      this.logger.warn(`Attempted to start onboarding for missing user ${userId}`);
+      throw new NotFoundException('User not found');
+    }
+  }
+
+  private handlePrismaError(context: string, error: unknown, userId: string): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      this.logger.warn(`Referential integrity error during ${context} for user ${userId}: ${error.message}`);
+      throw new NotFoundException('User not found');
+    }
+
+    if (error instanceof Error) {
+      this.logger.error(`Failed to ${context} for user ${userId}: ${error.message}`, error.stack);
+    } else {
+      this.logger.error(`Failed to ${context} for user ${userId}: ${String(error)}`);
+    }
+
+    throw error;
   }
 }
