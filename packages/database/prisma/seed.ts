@@ -1,4 +1,14 @@
-import { PrismaClient } from '@prisma/client';
+import {
+  PrismaClient,
+  LocationKind,
+  AlertMode,
+  Alliance,
+  LoyaltyKind,
+  DestMode,
+  TripStyle,
+  InterestTag,
+  PrefMode,
+} from '@prisma/client';
 import cardCatalogJson from '../../shared/src/card-engine/card-database.data.json';
 
 interface CardCatalog {
@@ -45,6 +55,122 @@ interface SeedCard {
 
 const cardCatalog = cardCatalogJson as CardCatalog;
 
+const locationSeeds = [
+  {
+    kind: LocationKind.AIRPORT,
+    iata: 'JFK',
+    name: 'John F. Kennedy International Airport',
+    countryCode: 'US',
+    regionCode: 'NY',
+    lat: 40.6413,
+    lon: -73.7781,
+  },
+  {
+    kind: LocationKind.AIRPORT,
+    iata: 'EWR',
+    name: 'Newark Liberty International Airport',
+    countryCode: 'US',
+    regionCode: 'NJ',
+    lat: 40.6895,
+    lon: -74.1745,
+  },
+  {
+    kind: LocationKind.CITY,
+    iata: 'NYC',
+    name: 'New York City',
+    countryCode: 'US',
+    regionCode: 'NY',
+  },
+  {
+    kind: LocationKind.AIRPORT,
+    iata: 'LIS',
+    name: 'Lisbon Humberto Delgado Airport',
+    countryCode: 'PT',
+    lat: 38.7742,
+    lon: -9.1342,
+  },
+  {
+    kind: LocationKind.AIRPORT,
+    iata: 'CDG',
+    name: 'Paris Charles de Gaulle Airport',
+    countryCode: 'FR',
+    lat: 49.0097,
+    lon: 2.5479,
+  },
+  {
+    kind: LocationKind.CITY,
+    iata: 'PAR',
+    name: 'Paris',
+    countryCode: 'FR',
+  },
+  {
+    kind: LocationKind.REGION,
+    iata: null,
+    name: 'Europe',
+    countryCode: 'EU',
+    regionCode: 'EU',
+  },
+  {
+    kind: LocationKind.REGION,
+    iata: null,
+    name: 'North America',
+    countryCode: 'US',
+    regionCode: 'NA',
+  },
+];
+
+const airlineSeeds = [
+  { code2: 'UA', name: 'United Airlines', alliance: Alliance.STAR },
+  { code2: 'AC', name: 'Air Canada', alliance: Alliance.STAR },
+  { code2: 'LH', name: 'Lufthansa', alliance: Alliance.STAR },
+  { code2: 'NH', name: 'ANA All Nippon Airways', alliance: Alliance.STAR },
+  { code2: 'SQ', name: 'Singapore Airlines', alliance: Alliance.STAR },
+  { code2: 'AA', name: 'American Airlines', alliance: Alliance.ONEWORLD },
+  { code2: 'BA', name: 'British Airways', alliance: Alliance.ONEWORLD },
+  { code2: 'JL', name: 'Japan Airlines', alliance: Alliance.ONEWORLD },
+  { code2: 'QR', name: 'Qatar Airways', alliance: Alliance.ONEWORLD },
+  { code2: 'CX', name: 'Cathay Pacific', alliance: Alliance.ONEWORLD },
+  { code2: 'DL', name: 'Delta Air Lines', alliance: Alliance.SKYTEAM },
+  { code2: 'AF', name: 'Air France', alliance: Alliance.SKYTEAM },
+  { code2: 'KL', name: 'KLM Royal Dutch Airlines', alliance: Alliance.SKYTEAM },
+  { code2: 'KE', name: 'Korean Air', alliance: Alliance.SKYTEAM },
+  { code2: 'AM', name: 'Aeromexico', alliance: Alliance.SKYTEAM },
+  { code2: 'EK', name: 'Emirates', alliance: Alliance.NONE },
+  { code2: 'EY', name: 'Etihad Airways', alliance: Alliance.NONE },
+  { code2: 'QF', name: 'Qantas Airways', alliance: Alliance.ONEWORLD },
+  { code2: 'TK', name: 'Turkish Airlines', alliance: Alliance.STAR },
+  { code2: 'VS', name: 'Virgin Atlantic', alliance: Alliance.NONE },
+  { code2: 'B6', name: 'JetBlue Airways', alliance: Alliance.NONE },
+  { code2: 'WN', name: 'Southwest Airlines', alliance: Alliance.NONE },
+];
+
+const hotelProgramSeeds = [
+  { id: 'HYATT', name: 'World of Hyatt' },
+  { id: 'MARRIOTT', name: 'Marriott Bonvoy' },
+  { id: 'HILTON', name: 'Hilton Honors' },
+  { id: 'IHG', name: 'IHG One Rewards' },
+  { id: 'ACCOR', name: 'Accor Live Limitless' },
+  { id: 'CHOICE', name: 'Choice Privileges' },
+  { id: 'RADISSON', name: 'Radisson Rewards' },
+  { id: 'WYNDHAM', name: 'Wyndham Rewards' },
+  { id: 'MELIA', name: 'MeliaRewards' },
+  { id: 'FOUR_SEASONS', name: 'Four Seasons Preferred Partner' },
+];
+
+const loyaltyProgramSeeds = [
+  { id: 'AEROPLAN', name: 'Air Canada Aeroplan', kind: LoyaltyKind.AIR },
+  { id: 'MILEAGEPLUS', name: 'United MileagePlus', kind: LoyaltyKind.AIR },
+  { id: 'AADVANTAGE', name: 'American Airlines AAdvantage', kind: LoyaltyKind.AIR },
+  { id: 'SKYMILES', name: 'Delta SkyMiles', kind: LoyaltyKind.AIR },
+  { id: 'EXECUTIVE_CLUB', name: 'British Airways Executive Club', kind: LoyaltyKind.AIR },
+  { id: 'KRISFLYER', name: 'Singapore Airlines KrisFlyer', kind: LoyaltyKind.AIR },
+  { id: 'AVIOS', name: 'Avios', kind: LoyaltyKind.AIR },
+  { id: 'HYATT_POINTS', name: 'World of Hyatt', kind: LoyaltyKind.HOTEL },
+  { id: 'MARRIOTT_POINTS', name: 'Marriott Bonvoy', kind: LoyaltyKind.HOTEL },
+  { id: 'HILTON_POINTS', name: 'Hilton Honors', kind: LoyaltyKind.HOTEL },
+  { id: 'IHG_POINTS', name: 'IHG One Rewards', kind: LoyaltyKind.HOTEL },
+];
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -57,12 +183,29 @@ async function main() {
   await prisma.watcher.deleteMany();
   await prisma.trip.deleteMany();
   await prisma.userCreditCard.deleteMany();
+  await prisma.userCard.deleteMany();
   await prisma.cardCreditDefinition.deleteMany();
   await prisma.cardEarnRate.deleteMany();
   await prisma.cardTransferPartner.deleteMany();
   await prisma.creditCard.deleteMany();
-  await prisma.userLoyaltyProgram.deleteMany();
+  await prisma.cardCatalog.deleteMany();
+  await prisma.userLoyaltyBalance.deleteMany();
   await prisma.loyaltyProgram.deleteMany();
+  await prisma.userHotelProgramPref.deleteMany();
+  await prisma.userAlliancePref.deleteMany();
+  await prisma.userAirlinePref.deleteMany();
+  await prisma.userAccessibility.deleteMany();
+  await prisma.userDietary.deleteMany();
+  await prisma.userInterest.deleteMany();
+  await prisma.userTripStyle.deleteMany();
+  await prisma.userDestinationPref.deleteMany();
+  await prisma.userHomeBase.deleteMany();
+  await prisma.userProfile.deleteMany();
+  await prisma.onboardingMessage.deleteMany();
+  await prisma.onboardingSession.deleteMany();
+  await prisma.location.deleteMany();
+  await prisma.airline.deleteMany();
+  await prisma.hotelProgram.deleteMany();
   await prisma.account.deleteMany();
   await prisma.session.deleteMany();
   await prisma.user.deleteMany();
@@ -72,6 +215,7 @@ async function main() {
   // Create demo user
   const user = await prisma.user.create({
     data: {
+      id: 'demo-user',
       email: 'demo@milebyclub.com',
       name: 'Demo User',
       bio: 'Award flight seeker',
@@ -82,56 +226,126 @@ async function main() {
 
   console.log(`✅ Created demo user: ${user.email}`);
 
-  // Create loyalty programs
-  const programs = await Promise.all([
-    prisma.loyaltyProgram.create({
-      data: {
-        name: 'United Airlines MileagePlus',
-        airline: 'United',
-        programType: 'airline',
-        description: 'United Airlines frequent flyer program',
-        website: 'https://www.mileageplus.com',
-      },
-    }),
-    prisma.loyaltyProgram.create({
-      data: {
-        name: 'American Airlines AAdvantage',
-        airline: 'American',
-        programType: 'airline',
-        description: 'American Airlines frequent flyer program',
-        website: 'https://www.aa.com/aadvantage',
-      },
-    }),
-    prisma.loyaltyProgram.create({
-      data: {
-        name: 'Delta SkyMiles',
-        airline: 'Delta',
-        programType: 'airline',
-        description: 'Delta Air Lines frequent flyer program',
-        website: 'https://www.delta.com/skymiles',
-      },
-    }),
-  ]);
+  await prisma.location.createMany({ data: locationSeeds });
+  console.log(`✅ Seeded ${locationSeeds.length} locations`);
 
-  console.log(`✅ Created ${programs.length} loyalty programs`);
+  await prisma.airline.createMany({ data: airlineSeeds });
+  console.log(`✅ Seeded ${airlineSeeds.length} airlines`);
 
-  // Link user to programs
-  for (const program of programs) {
-    await prisma.userLoyaltyProgram.create({
-      data: {
+  await prisma.hotelProgram.createMany({ data: hotelProgramSeeds });
+  console.log(`✅ Seeded ${hotelProgramSeeds.length} hotel programs`);
+
+  await prisma.loyaltyProgram.createMany({ data: loyaltyProgramSeeds });
+  console.log(`✅ Seeded ${loyaltyProgramSeeds.length} loyalty programs`);
+
+  const profile = await prisma.userProfile.create({
+    data: {
+      userId: user.id,
+      alertMode: AlertMode.HIGH_QUALITY,
+      timezone: 'America/New_York',
+      mixedAirlinesOk: true,
+      openJawOk: false,
+    },
+  });
+
+  const nyc = await prisma.location.findFirstOrThrow({ where: { iata: 'NYC' } });
+  const lis = await prisma.location.findFirstOrThrow({ where: { iata: 'LIS' } });
+  const cdg = await prisma.location.findFirstOrThrow({ where: { iata: 'CDG' } });
+
+  await prisma.userHomeBase.create({
+    data: {
+      userId: user.id,
+      locationId: nyc.id,
+      source: 'SEED',
+    },
+  });
+
+  await prisma.userDestinationPref.createMany({
+    data: [
+      {
         userId: user.id,
-        programId: program.id,
-        accountNumber: `USER${Math.random().toString(36).substring(7).toUpperCase()}`,
-        tier: 'Gold',
-        isVerified: true,
+        locationId: lis.id,
+        mode: DestMode.WISH,
+        notes: 'Dream trip to Portugal',
       },
-    });
-  }
+      {
+        userId: user.id,
+        locationId: cdg.id,
+        mode: DestMode.AVOID,
+        notes: 'Avoid CDG connections',
+      },
+    ],
+  });
 
-  console.log(`✅ Linked user to programs`);
+  await prisma.userTripStyle.createMany({
+    data: [
+      { userId: user.id, style: TripStyle.CITY },
+      { userId: user.id, style: TripStyle.PACE_CHILL },
+    ],
+  });
+
+  await prisma.userInterest.createMany({
+    data: [
+      { userId: user.id, tag: InterestTag.FOOD_TOURS },
+      { userId: user.id, tag: InterestTag.MUSEUMS },
+    ],
+  });
+
+  await prisma.userAirlinePref.create({
+    data: {
+      userId: user.id,
+      code2: 'UA',
+      mode: PrefMode.PREFER,
+    },
+  });
+
+  await prisma.userAlliancePref.create({
+    data: {
+      userId: user.id,
+      alliance: Alliance.STAR,
+      mode: PrefMode.PREFER,
+    },
+  });
+
+  await prisma.userHotelProgramPref.create({
+    data: {
+      userId: user.id,
+      programId: 'HYATT',
+      mode: PrefMode.PREFER,
+    },
+  });
+
+  await prisma.userLoyaltyBalance.create({
+    data: {
+      userId: profile.userId,
+      programId: 'AEROPLAN',
+      approxPoints: 85000,
+    },
+  });
+
+  await prisma.userLoyaltyBalance.create({
+    data: {
+      userId: profile.userId,
+      programId: 'HYATT_POINTS',
+      approxPoints: 120000,
+    },
+  });
 
   // Create credit cards
   const cardsData = cardCatalog.cards as SeedCard[];
+  const catalogEntries = cardsData.slice(0, 25).map((cardData, index) => ({
+    cardId:
+      cardData.cardId ??
+      cardData.id ??
+      (cardData.name ? cardData.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') : `card_${index}`),
+    issuer: cardData.issuer,
+    productName: cardData.productName ?? cardData.name ?? 'Unknown Card',
+  }));
+
+  if (catalogEntries.length > 0) {
+    await prisma.cardCatalog.createMany({ data: catalogEntries, skipDuplicates: true });
+    console.log(`✅ Seeded ${catalogEntries.length} card catalog entries`);
+  }
   const cards = await Promise.all(
     cardsData.map(async (cardData) => {
       const cardId = cardData.cardId ?? cardData.id;
@@ -210,6 +424,17 @@ async function main() {
       },
     });
     console.log('✅ Linked user to primary demo credit card');
+  }
+
+  if (catalogEntries.length > 0) {
+    await prisma.userCard.create({
+      data: {
+        userId: profile.userId,
+        cardId: catalogEntries[0].cardId,
+        openedAt: new Date(),
+      },
+    });
+    console.log('✅ Linked user profile to card catalog entry');
   }
 
   // Create a watcher
