@@ -197,9 +197,22 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
     setIsBooking(true);
 
     try {
-      const { success, data, error } = await api.get<{ bookingUrl: string | null }>(
-        `/deals/${encodeURIComponent(deal.id)}/booking-url`,
-      );
+      const url = deal.externalId
+        ? `/deals/booking-url/${encodeURIComponent(deal.id)}?externalId=${encodeURIComponent(
+            deal.externalId,
+          )}`
+        : `/deals/booking-url/${encodeURIComponent(deal.id)}`;
+
+      console.log("Making API call to:", url);
+      console.log("Deal data:", {
+        id: deal.id,
+        externalId: deal.externalId,
+        airline: deal.airline,
+      });
+
+      const { success, data, error } = await api.get<{ bookingUrl: string | null }>(url);
+
+      console.log("API response:", { success, data, error });
 
       if (!success) {
         throw new Error(error?.message ?? "Unable to fetch booking URL");
@@ -233,6 +246,12 @@ export function DealCard({ deal, view = "grid" }: DealCardProps) {
       }
     } catch (error) {
       console.error("Error fetching booking URL", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        dealId: deal.id,
+        externalId: deal.externalId,
+      });
       window.alert("Unable to retrieve booking information. Please try again later.");
     } finally {
       setIsBooking(false);
