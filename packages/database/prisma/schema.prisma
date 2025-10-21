@@ -15,61 +15,62 @@ datasource db {
 // ============================================================================
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  name          String?
-  bio           String?
-  passwordHash  String?
-  avatar        String?
-  
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String?
+  bio          String?
+  passwordHash String?
+  avatar       String?
+
   // Authentication
   emailVerified DateTime?
   lastLogin     DateTime?
-  
+
   // Settings
   notificationPreference String @default("daily") // hourly, daily, weekly, never
-  timezone      String     @default("UTC")
-  theme         String     @default("light") // light, dark
-  
+  timezone               String @default("UTC")
+  theme                  String @default("light") // light, dark
+
   // Status
-  isActive      Boolean    @default(true)
-  isBanned      Boolean    @default(false)
-  
+  isActive Boolean @default(true)
+  isBanned Boolean @default(false)
+
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  loyaltyPrograms UserLoyaltyProgram[]
-  creditCards   UserCreditCard[]
-  watchers      Watcher[]
-  deals         Deal[]
-  alerts        Alert[]
-  savedDeals    SavedDeal[]
-  trips         Trip[]
-  aiSessions    AiSession[]
-  tripPlans     TripPlan[]
-  mediaInsights MediaInsight[]
-  preference    UserPreference?
-  
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  
+  accounts           Account[]
+  sessions           Session[]
+  creditCards        UserCreditCard[]
+  watchers           Watcher[]
+  deals              Deal[]
+  alerts             Alert[]
+  savedDeals         SavedDeal[]
+  trips              Trip[]
+  aiSessions         AiSession[]
+  onboardingSessions OnboardingSession[]
+  tripPlans          TripPlan[]
+  mediaInsights      MediaInsight[]
+  preference         UserPreference?
+  profile            UserProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([createdAt])
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -88,74 +89,23 @@ model Session {
 }
 
 // ============================================================================
-// LOYALTY PROGRAMS & CREDIT CARDS
+// CREDIT CARDS
 // ============================================================================
 
-model LoyaltyProgram {
-  id            String    @id @default(cuid())
-  name          String    @unique
-  airline        String?
-  description   String?
-  website       String?
-  logo          String?
-  
-  // Program details
-  programType   String    // airline, hotel, activity, credit_card
-  country       String?
-  currency      String    @default("USD")
-  
-  // Status
-  isActive      Boolean   @default(true)
-  
-  // Relations
-  userPrograms  UserLoyaltyProgram[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  @@index([name])
-  @@index([programType])
-}
-
-model UserLoyaltyProgram {
-  id            String    @id @default(cuid())
-  userId        String
-  programId     String
-  
-  // Account info
-  accountNumber String?
-  tier          String?
-  
-  // Status
-  isVerified    Boolean   @default(false)
-  isActive      Boolean   @default(true)
-  
-  // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  program       LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  @@unique([userId, programId])
-  @@index([userId])
-  @@index([programId])
-}
-
 model CreditCard {
-  cardId          String   @id
-  issuer          String
-  network         String
-  productName     String
-  annualFeeUsd    Int
-  rewardsProgram  String
-  pointValueCents Float?
-  welcomeOffer    Json?
-  metadata        Json?
-  perks           Json?
-  protections     Json?
+  cardId           String    @id
+  issuer           String
+  network          String
+  productName      String
+  annualFeeUsd     Int
+  rewardsProgram   String
+  pointValueCents  Float?
+  welcomeOffer     Json?
+  metadata         Json?
+  perks            Json?
+  protections      Json?
   sourceOfTruthUrl String?
-  lastVerifiedUtc DateTime?
+  lastVerifiedUtc  DateTime?
 
   earnRates        CardEarnRate[]
   credits          CardCreditDefinition[]
@@ -170,19 +120,19 @@ model CreditCard {
 }
 
 model CardEarnRate {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   cardId    String
   category  String
   rateX     Float
   card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([cardId])
 }
 
 model CardCreditDefinition {
-  id                 String   @id @default(cuid())
+  id                 String     @id @default(cuid())
   creditId           String
   cardId             String
   title              String
@@ -195,45 +145,45 @@ model CardCreditDefinition {
   eligibility        Json?
   recognition        Json?
   card               CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   @@index([cardId])
   @@index([creditId])
 }
 
 model CardTransferPartner {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   cardId    String
   partner   String
   card      CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([cardId])
   @@index([partner])
 }
 
 model UserCreditCard {
-  id            String    @id @default(cuid())
-  userId        String
-  cardId        String
+  id     String @id @default(cuid())
+  userId String
+  cardId String
 
   // Account details
   lastFourDigits String?
-  expiryMonth   Int?
-  expiryYear    Int?
+  expiryMonth    Int?
+  expiryYear     Int?
 
   // Status
-  isActive      Boolean   @default(true)
-  isPrimary     Boolean   @default(false)
+  isActive  Boolean @default(true)
+  isPrimary Boolean @default(false)
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card          CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card CreditCard @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, cardId])
   @@index([userId])
@@ -245,34 +195,34 @@ model UserCreditCard {
 // ============================================================================
 
 model Watcher {
-  id            String    @id @default(cuid())
-  userId        String
-  
+  id     String @id @default(cuid())
+  userId String
+
   // Watcher details
-  name          String
-  type          String    // flight, hotel, activity
-  description   String?
-  
+  name        String
+  type        String // flight, hotel, activity
+  description String?
+
   // Search parameters (stored as JSON)
-  searchParams  Json
-  
+  searchParams Json
+
   // Frequency settings
-  frequency     String    @default("daily") // hourly, daily, weekly
-  isActive      Boolean   @default(true)
-  
+  frequency String  @default("daily") // hourly, daily, weekly
+  isActive  Boolean @default(true)
+
   // Notification settings
-  notifyEmail   Boolean   @default(true)
-  notifyPush    Boolean   @default(true)
-  minScore      Float     @default(70.0)
-  
+  notifyEmail Boolean @default(true)
+  notifyPush  Boolean @default(true)
+  minScore    Float   @default(70.0)
+
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deals         Deal[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastRunAt     DateTime?
-  
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deals Deal[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lastRunAt DateTime?
+
   @@index([userId])
   @@index([type])
   @@index([isActive])
@@ -280,67 +230,68 @@ model Watcher {
 }
 
 model Deal {
-  id            String    @id @default(cuid())
-  watcherId     String
-  userId        String
-  externalId    String
+  id         String @id @default(cuid())
+  watcherId  String
+  userId     String
+  externalId String
 
   // Deal details
-  title         String
-  description   String?
-  type          String    // flight, hotel, activity
-  
+  title       String
+  description String?
+  type        String // flight, hotel, activity
+
   // Flight specific
-  origin        String?
-  destination   String?
-  departDate    DateTime?
-  returnDate    DateTime?
-  cabin         String?
-  airline       String?
-  availability  Int?
+  origin       String?
+  destination  String?
+  departDate   DateTime?
+  returnDate   DateTime?
+  cabin        String?
+  airline      String?
+  availability Int?
 
   // Pricing
-  price         Float
-  currency      String    @default("USD")
-  basePrice     Float?
-  taxes         Float?
-  cashPrice     Float?
-  cashCurrency  String?
-  pointsCashPrice Float?
+  price              Float
+  currency           String  @default("USD")
+  basePrice          Float?
+  taxes              Float?
+  cashPrice          Float?
+  cashCurrency       String?
+  pointsCashPrice    Float?
   pointsCashCurrency String?
-  pointsCashMiles Int?
+  pointsCashMiles    Int?
   primaryPricingType String?
-  pricingOptions Json?
+  pricingOptions     Json?
 
   // CPP/Value
   milesRequired Int?
-  cpp           Float?    // cents per point
+  cpp           Float? // cents per point
   value         Float?
-  
+
   // Ranking
-  score         Float     @default(0.0)
+  score          Float @default(0.0)
   scoreBreakdown Json?
-  
+
   // Booking info
-  bookingUrl    String?
-  provider      String?
+  bookingUrl String?
+  provider   String?
 
   // Status
-  status        String    @default("active") // active, expired, booked, hidden
-  isNew         Boolean   @default(true)
+  status String  @default("active") // active, expired, booked, hidden
+  isNew  Boolean @default(true)
 
   // Raw provider payload
-  rawData       Json?
+  rawData Json?
 
   // Relations
-  watcher       Watcher   @relation(fields: [watcherId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alerts        Alert[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  expiresAt     DateTime?
-  
+  watcher Watcher @relation(fields: [watcherId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts  Alert[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  @@unique([watcherId, provider, externalId])
   @@index([watcherId])
   @@index([userId])
   @@index([type])
@@ -348,12 +299,11 @@ model Deal {
   @@index([score])
   @@index([createdAt])
   @@index([expiresAt])
-  @@unique([watcherId, provider, externalId])
 }
 
 model SeatsAeroDeal {
-  id            String   @id @default(cuid())
-  externalId    String   @unique
+  id            String    @id @default(cuid())
+  externalId    String    @unique
   airline       String
   program       String
   origin        String
@@ -364,32 +314,32 @@ model SeatsAeroDeal {
   cashPrice     Decimal?
   bookingUrl    String?
   rawData       Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   expiresAt     DateTime?
 
   @@map("seats_aero_deals")
 }
 
 model SavedDeal {
-  id            String    @id @default(cuid())
-  userId        String
-  dealId        String
-  
+  id     String @id @default(cuid())
+  userId String
+  dealId String
+
   // Notes
-  notes         String?
-  
+  notes String?
+
   // Status
-  isSaved       Boolean   @default(true)
-  isBooked      Boolean   @default(false)
-  bookingDate   DateTime?
-  
+  isSaved     Boolean   @default(true)
+  isBooked    Boolean   @default(false)
+  bookingDate DateTime?
+
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([userId, dealId])
   @@index([userId])
   @@index([isSaved])
@@ -400,32 +350,32 @@ model SavedDeal {
 // ============================================================================
 
 model Alert {
-  id            String    @id @default(cuid())
-  userId        String
-  dealId        String
-  
+  id     String @id @default(cuid())
+  userId String
+  dealId String
+
   // Alert details
-  type          String    // deal_found, price_drop, seat_available
-  title         String
-  message       String
-  
+  type    String // deal_found, price_drop, seat_available
+  title   String
+  message String
+
   // Delivery
-  sentVia       String    @default("push") // email, push, sms, in-app
-  isRead        Boolean   @default(false)
-  isClicked     Boolean   @default(false)
-  
+  sentVia   String  @default("push") // email, push, sms, in-app
+  isRead    Boolean @default(false)
+  isClicked Boolean @default(false)
+
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deal          Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  readAt        DateTime?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
 
+  @@unique([userId, dealId, type])
   @@index([userId])
   @@index([dealId])
   @@index([isRead])
   @@index([createdAt])
-  @@unique([userId, dealId, type])
 }
 
 // ============================================================================
@@ -433,28 +383,28 @@ model Alert {
 // ============================================================================
 
 model Trip {
-  id            String    @id @default(cuid())
-  userId        String
+  id     String @id @default(cuid())
+  userId String
 
   // Trip details
-  name          String
-  destination   String
-  startDate     DateTime
-  endDate       DateTime
+  name        String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
 
   // Trip info
-  travelers     Int       @default(1)
-  budget        Float?
-  notes         String?
+  travelers Int     @default(1)
+  budget    Float?
+  notes     String?
 
   // Status
-  status        String    @default("planning") // planning, booked, completed, cancelled
+  status String @default("planning") // planning, booked, completed, cancelled
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -465,35 +415,35 @@ model Trip {
 // ============================================================================
 
 model TripPlan {
-  id            String   @id @default(cuid())
-  userId        String
+  id     String @id @default(cuid())
+  userId String
 
   // Metadata
-  title         String
-  summary       String?
-  origin        String?
-  destination   String?
-  startDate     DateTime?
-  endDate       DateTime?
-  travelers     Int?
-  budget        Float?
-  styleTags     String[] @default([])
-  llmModel      String?
-  plannerVersion String? @default("v1")
+  title          String
+  summary        String?
+  origin         String?
+  destination    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  travelers      Int?
+  budget         Float?
+  styleTags      String[]  @default([])
+  llmModel       String?
+  plannerVersion String?   @default("v1")
 
   // Content
-  preferences   Json?
-  plan          Json?
-  insights      Json?
+  preferences Json?
+  plan        Json?
+  insights    Json?
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   days          TripPlanDay[]
   sessions      AiSession[]
   mediaInsights MediaInsight[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([destination])
@@ -501,72 +451,72 @@ model TripPlan {
 }
 
 model TripPlanDay {
-  id            String   @id @default(cuid())
-  tripPlanId    String
-  dayNumber     Int
-  date          DateTime?
-  summary       String?
-  highlights    Json?
-  meals         Json?
+  id         String    @id @default(cuid())
+  tripPlanId String
+  dayNumber  Int
+  date       DateTime?
+  summary    String?
+  highlights Json?
+  meals      Json?
 
   // Relations
-  tripPlan      TripPlan @relation(fields: [tripPlanId], references: [id], onDelete: Cascade)
-  experiences   TripPlanExperience[]
+  tripPlan    TripPlan             @relation(fields: [tripPlanId], references: [id], onDelete: Cascade)
+  experiences TripPlanExperience[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([tripPlanId, dayNumber])
   @@index([tripPlanId])
 }
 
 model TripPlanExperience {
-  id            String   @id @default(cuid())
+  id            String @id @default(cuid())
   tripPlanDayId String
 
   // Activity metadata
-  title         String
-  category      String
-  startTime     String?
-  endTime       String?
-  location      String?
-  latitude      Float?
-  longitude     Float?
-  price         Float?
-  currency      String?
-  bookingUrl    String?
-  notes         String?
-  metadata      Json?
+  title      String
+  category   String
+  startTime  String?
+  endTime    String?
+  location   String?
+  latitude   Float?
+  longitude  Float?
+  price      Float?
+  currency   String?
+  bookingUrl String?
+  notes      String?
+  metadata   Json?
 
   // Relations
-  tripPlanDay   TripPlanDay @relation(fields: [tripPlanDayId], references: [id], onDelete: Cascade)
+  tripPlanDay TripPlanDay @relation(fields: [tripPlanDayId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tripPlanDayId])
 }
 
 model AiSession {
-  id            String   @id @default(cuid())
-  userId        String
-  tripPlanId    String?
-  title         String?
-  model         String
-  persona       String?
-  mode          String   @default("assistant") // assistant, concierge, autopilot
+  id         String  @id @default(cuid())
+  userId     String
+  tripPlanId String?
+  title      String?
+  model      String
+  persona    String?
+  mode       String  @default("assistant") // assistant, concierge, autopilot
 
   // Context
-  temperature   Float?   @default(0.4)
-  tone          String?  @default("balanced")
+  temperature Float?  @default(0.4)
+  tone        String? @default("balanced")
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tripPlan      TripPlan? @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
-  messages      AiMessage[]
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripPlan TripPlan?   @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
+  messages AiMessage[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([tripPlanId])
@@ -574,36 +524,36 @@ model AiSession {
 }
 
 model AiMessage {
-  id            String   @id @default(cuid())
-  sessionId     String
-  role          String
-  content       Json
-  tokens        Int?
+  id        String @id @default(cuid())
+  sessionId String
+  role      String
+  content   Json
+  tokens    Int?
 
   // Relations
-  session       AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([sessionId])
   @@index([createdAt])
 }
 
 model MediaInsight {
-  id            String   @id @default(cuid())
-  userId        String
-  tripPlanId    String?
-  mediaType     String   // image, video
-  source        String?
-  prompt        String?
-  inference     Json
-  confidence    Float?
+  id         String  @id @default(cuid())
+  userId     String
+  tripPlanId String?
+  mediaType  String // image, video
+  source     String?
+  prompt     String?
+  inference  Json
+  confidence Float?
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tripPlan      TripPlan? @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripPlan TripPlan? @relation(fields: [tripPlanId], references: [id], onDelete: SetNull)
 
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([tripPlanId])
@@ -624,10 +574,303 @@ model UserPreference {
   updatedBy          String?
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// ONBOARDING & USER PROFILES
+// ============================================================================
+
+enum Cabin {
+  Y
+  W
+  J
+  F
+}
+
+enum AlertMode {
+  HIGH_QUALITY
+  DIGEST
+}
+
+enum LocationKind {
+  AIRPORT
+  CITY
+  REGION
+}
+
+enum DestMode {
+  WISH
+  AVOID
+}
+
+enum TripStyle {
+  BEACH
+  CITY
+  NATURE
+  NIGHTLIFE
+  KID_FRIENDLY
+  PACE_CHILL
+  PACE_PACKED
+}
+
+enum InterestTag {
+  FOOD_TOURS
+  MUSEUMS
+  HIKES
+  SPORTS
+  SHOWS
+  OTHER
+}
+
+enum DietaryTag {
+  VEGETARIAN
+  VEGAN
+  HALAL
+  KOSHER
+  NUT_ALLERGY
+  GLUTEN_FREE
+  OTHER
+}
+
+enum AccessibilityTag {
+  STROLLER_OK
+  WHEELCHAIR
+  HEARING
+  SIGHT
+  OTHER
+}
+
+enum Alliance {
+  STAR
+  ONEWORLD
+  SKYTEAM
+  NONE
+}
+
+enum PrefMode {
+  PREFER
+  AVOID
+}
+
+enum LoyaltyKind {
+  AIR
+  HOTEL
+}
+
+model Location {
+  id          String       @id @default(cuid())
+  kind        LocationKind
+  iata        String?
+  name        String
+  countryCode String?
+  regionCode  String?
+  lat         Float?
+  lon         Float?
+  meta        Json?
+
+  homeBases    UserHomeBase[]
+  destinations UserDestinationPref[]
+
+  @@index([kind, iata])
+  @@index([name])
+}
+
+model UserProfile {
+  userId            String     @id
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  preferredCabin    Cabin?
+  companions        Int?
+  openJawOk         Boolean?
+  mixedAirlinesOk   Boolean?
+  dateFlexDays      Int?
+  typicalTripLenMin Int?
+  typicalTripLenMax Int?
+  minCppCents       Float?
+  maxCashUsd        Int?
+  maxPoints         Int?
+  alertMode         AlertMode?
+  timezone          String?
+  rawOnboardingJson Json?
+  rawNotes          String?
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homeBases         UserHomeBase[]
+  destinations      UserDestinationPref[]
+  styles            UserTripStyle[]
+  interests         UserInterest[]
+  dietary           UserDietary[]
+  accessibility     UserAccessibility[]
+  airlinesPref      UserAirlinePref[]
+  alliancesPref     UserAlliancePref[]
+  hotelProgramsPref UserHotelProgramPref[]
+  loyaltyBalances   UserLoyaltyBalance[]
+  cards             UserCard[]
+}
+
+model UserHomeBase {
+  id         String  @id @default(cuid())
+  userId     String
+  locationId String
+  source     String?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  location    Location    @relation(fields: [locationId], references: [id], onDelete: Restrict)
+}
+
+model UserDestinationPref {
+  id         String   @id @default(cuid())
+  userId     String
+  locationId String
+  mode       DestMode
+  notes      String?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  location    Location    @relation(fields: [locationId], references: [id], onDelete: Restrict)
+}
+
+model UserTripStyle {
+  id     String    @id @default(cuid())
+  userId String
+  style  TripStyle
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model UserInterest {
+  id     String      @id @default(cuid())
+  userId String
+  tag    InterestTag
+  notes  String?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model UserDietary {
+  id     String     @id @default(cuid())
+  userId String
+  tag    DietaryTag
+  notes  String?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model UserAccessibility {
+  id     String           @id @default(cuid())
+  userId String
+  tag    AccessibilityTag
+  notes  String?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Airline {
+  code2    String    @id
+  name     String
+  alliance Alliance?
+
+  preferences UserAirlinePref[]
+}
+
+model HotelProgram {
+  id   String @id
+  name String
+
+  preferences UserHotelProgramPref[]
+}
+
+model UserAirlinePref {
+  id     String   @id @default(cuid())
+  userId String
+  code2  String
+  mode   PrefMode
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  airline     Airline     @relation(fields: [code2], references: [code2], onDelete: Restrict)
+}
+
+model UserAlliancePref {
+  id       String   @id @default(cuid())
+  userId   String
+  alliance Alliance
+  mode     PrefMode
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model UserHotelProgramPref {
+  id        String   @id @default(cuid())
+  userId    String
+  programId String
+  mode      PrefMode
+
+  userProfile  UserProfile  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  hotelProgram HotelProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+}
+
+model LoyaltyProgram {
+  id   String      @id
+  kind LoyaltyKind
+  name String
+
+  balances UserLoyaltyBalance[]
+}
+
+model UserLoyaltyBalance {
+  id           String    @id @default(cuid())
+  userId       String
+  programId    String
+  approxPoints Int
+  asOf         DateTime?
+
+  userProfile    UserProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  loyaltyProgram LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, programId])
+}
+
+model CardCatalog {
+  cardId      String @id
+  issuer      String
+  productName String
+
+  cards UserCard[]
+}
+
+model UserCard {
+  id       String    @id @default(cuid())
+  userId   String
+  cardId   String
+  openedAt DateTime?
+
+  userProfile UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  card        CardCatalog @relation(fields: [cardId], references: [cardId], onDelete: Restrict)
+}
+
+model OnboardingSession {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages OnboardingMessage[]
+}
+
+model OnboardingMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  session OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
 }
 
 // ============================================================================
@@ -635,37 +878,37 @@ model UserPreference {
 // ============================================================================
 
 model Event {
-  id            String    @id @default(cuid())
-  userId        String?
-  eventType     String
-  eventData     Json?
-  
+  id        String  @id @default(cuid())
+  userId    String?
+  eventType String
+  eventData Json?
+
   // Metadata
-  userAgent     String?
-  ipAddress     String?
-  
-  createdAt     DateTime  @default(now())
-  
+  userAgent String?
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([eventType])
   @@index([createdAt])
 }
 
 model Analytics {
-  id            String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Daily stats
-  date          DateTime  @unique
-  
+  date DateTime @unique
+
   // Metrics
-  totalUsers    Int       @default(0)
-  activeUsers   Int       @default(0)
-  dealsFound    Int       @default(0)
-  dealsBooked   Int       @default(0)
-  revenue       Float     @default(0.0)
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  totalUsers  Int   @default(0)
+  activeUsers Int   @default(0)
+  dealsFound  Int   @default(0)
+  dealsBooked Int   @default(0)
+  revenue     Float @default(0.0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([date])
 }
