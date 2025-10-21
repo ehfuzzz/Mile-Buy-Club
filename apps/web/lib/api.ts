@@ -18,6 +18,8 @@ export async function apiFetch<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const url = `${API_BASE_URL}${endpoint}`;
+    console.log('API fetch URL:', url);
+    console.log('API fetch options:', options);
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
@@ -26,14 +28,21 @@ export async function apiFetch<T>(
       ...options,
     });
 
+    console.log('API response status:', response.status);
+    console.log('API response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
       throw new Error(`API error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('API response data:', data);
     return { success: true, data };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('API fetch error:', error);
     return {
       success: false,
       error: {
