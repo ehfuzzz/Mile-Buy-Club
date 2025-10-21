@@ -260,22 +260,23 @@ export class SeatsAeroPartnerService {
     }
 
     const dedupedDeals = this.deduplicateDeals(aggregatedDeals);
+    const successfulProgramSummary = requestedPrograms.filter(
+      (program: string) => !failures.find((failure) => failure.program === program),
+    );
+    const failedProgramSummary = failures.map((failure) => failure.program);
+    const successfulProgramText = successfulProgramSummary.join(', ') || 'none';
+    const failedProgramText = failedProgramSummary.join(', ') || 'none';
+
     this.logger.debug(
       `SeatsAero aggregated ${aggregatedDeals.length} deal(s) across programs (${this.formatProgramSummary(
         aggregatedDeals,
-      )}). Deduped total: ${dedupedDeals.length}. Successful programs: ${normalizedPrograms
-        .filter((program) => !failures.find((failure) => failure.program === program))
-        .join(', ') || 'none'}. Failed programs: ${failures.map((failure) => failure.program).join(', ') || 'none'}.`,
+      )}). Deduped total: ${dedupedDeals.length}. Successful programs: ${successfulProgramText}. Failed programs: ${failedProgramText}.`,
     );
     const sortedDeals = this.sortDeals(dedupedDeals);
     const limitedDeals = sortedDeals.slice(0, baseTake);
 
     this.logger.debug(
-      `SeatsAero aggregated ${aggregatedDeals.length} raw deal(s) across ${requestedPrograms.length} requested program(s). Deduped total: ${dedupedDeals.length}. Successful programs: ${requestedPrograms
-        .filter((program) => !failures.find((failure) => failure.program === program))
-        .join(', ') || 'none'}. Failed programs: ${failures
-        .map((failure) => failure.program)
-        .join(', ') || 'none'}.`,
+      `SeatsAero aggregated ${aggregatedDeals.length} raw deal(s) across ${requestedPrograms.length} requested program(s). Deduped total: ${dedupedDeals.length}. Successful programs: ${successfulProgramText}. Failed programs: ${failedProgramText}.`,
     );
 
     return {
