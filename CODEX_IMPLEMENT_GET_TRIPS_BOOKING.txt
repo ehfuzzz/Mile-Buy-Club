@@ -1,0 +1,286 @@
+CODEX IMPLEMENTATION REQUEST: Implement "Book Now" Button with SeatsAero Get Trips API
+
+## Overview
+Implement a functional "Book Now" button that uses the SeatsAero Get Trips API to fetch actual booking URLs for flights. When a user clicks "Book Now", the system will:
+
+1. Extract the availability ID from the flight deal
+2. Make a GET request to the SeatsAero Get Trips endpoint
+3. Parse the response to extract the booking URL
+4. Redirect the user to the airline's booking page
+
+## API Documentation Reference
+- **Endpoint**: GET https://seats.aero/partnerapi/trips/{id}
+- **Documentation**: https://developers.seats.aero/reference/get-trips
+- **Purpose**: Retrieve flight-level information and booking URLs from availability objects
+
+## Implementation Requirements
+
+### Part 1: Backend - Add Get Trips Service Method
+
+**File**: `apps/api/src/deals/seats-aero-partner.service.ts`
+
+Add a new method to fetch booking URL from SeatsAero Get Trips API:
+
+```typescript
+async getBookingUrlFromTrips(availabilityId: string): Promise<string | null> {
+  try {
+    const response = await this.http.get(`/trips/${availabilityId}`, {
+      headers: {
+        'Partner-Authorization': this.apiKey,
+      },
+    });
+
+    // Parse the response to extract booking URL
+    const bookingUrl = this.extractBookingUrlFromTripsResponse(response.data);
+    
+    if (bookingUrl && this.isValidBookingUrl(bookingUrl)) {
+      return bookingUrl;
+    }
+
+    return null;
+  } catch (error) {
+    this.logger.warn(`Failed to fetch booking URL for availability ${availabilityId}`, error);
+    return null;
+  }
+}
+
+private extractBookingUrlFromTripsResponse(tripsData: any): string | null {
+  // Implement logic to extract booking URL from the trips response
+  // The exact structure will depend on the API response format
+  // Look for fields like: bookingUrl, BookingUrl, bookUrl, Link, etc.
+  
+  if (!tripsData || typeof tripsData !== 'object') {
+    return null;
+  }
+
+  // Try common booking URL field names
+  const possibleFields = [
+    'bookingUrl', 'BookingUrl', 'bookingURL', 'BookingURL',
+    'bookUrl', 'BookUrl', 'bookURL', 'BookURL',
+    'link', 'Link', 'url', 'Url', 'URL',
+    'deepLink', 'DeepLink', 'deeplink', 'Deeplink'
+  ];
+
+  for (const field of possibleFields) {
+    if (tripsData[field] && typeof tripsData[field] === 'string') {
+      return tripsData[field];
+    }
+  }
+
+  // Check nested objects (e.g., segments, options, etc.)
+  if (tripsData.segments && Array.isArray(tripsData.segments)) {
+    for (const segment of tripsData.segments) {
+      for (const field of possibleFields) {
+        if (segment[field] && typeof segment[field] === 'string') {
+          return segment[field];
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+private isValidBookingUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' && 
+           parsedUrl.hostname.length > 0 &&
+           this.isTrustedBookingHost(parsedUrl.hostname);
+  } catch {
+    return false;
+  }
+}
+
+private isTrustedBookingHost(hostname: string): boolean {
+  const trustedHosts = [
+    'www.united.com', 'united.com',
+    'www.aa.com', 'aa.com',
+    'www.delta.com', 'delta.com',
+    'www.jetblue.com', 'jetblue.com',
+    'www.southwest.com', 'southwest.com',
+    'www.alaskaair.com', 'alaskaair.com',
+    'www.emirates.com', 'emirates.com',
+    'www.qatar.com', 'qatar.com',
+    'www.singaporeair.com', 'singaporeair.com',
+    'www.lufthansa.com', 'lufthansa.com',
+    'www.airfrance.com', 'airfrance.com',
+    'www.klm.com', 'klm.com',
+    'www.britishairways.com', 'britishairways.com',
+    'www.virginatlantic.com', 'virginatlantic.com',
+    'www.qantas.com', 'qantas.com',
+    'www.etihad.com', 'etihad.com',
+    'www.turkishairlines.com', 'turkishairlines.com',
+    'www.aeromexico.com', 'aeromexico.com',
+    'www.ethiopianairlines.com', 'ethiopianairlines.com',
+    'www.saudia.com', 'saudia.com',
+    'www.azul.com.br', 'azul.com.br',
+    'www.finnair.com', 'finnair.com',
+    'www.smiles.com.br', 'smiles.com.br'
+  ];
+  
+  return trustedHosts.includes(hostname.toLowerCase());
+}
+```
+
+### Part 2: Backend - Add Get Trips Controller Endpoint
+
+**File**: `apps/api/src/deals/deals.controller.ts`
+
+Add a new endpoint to handle booking URL requests:
+
+```typescript
+@Get(':dealId/booking-url')
+@ApiOperation({ summary: 'Get booking URL for a specific deal' })
+async getBookingUrl(@Param('dealId') dealId: string): Promise<{ bookingUrl: string | null }> {
+  const bookingUrl = await this.dealsService.getBookingUrlForDeal(dealId);
+  return { bookingUrl };
+}
+```
+
+### Part 3: Backend - Add Deals Service Method
+
+**File**: `apps/api/src/deals/deals.service.ts`
+
+Add a method to get booking URL for a deal:
+
+```typescript
+async getBookingUrlForDeal(dealId: string): Promise<string | null> {
+  try {
+    // Find the deal in the database to get the availability ID
+    const deal = await this.prisma.seatsAeroDeal.findUnique({
+      where: { id: dealId },
+      select: { id: true }
+    });
+
+    if (!deal) {
+      this.logger.warn(`Deal not found: ${dealId}`);
+      return null;
+    }
+
+    // Use the deal ID as the availability ID to call Get Trips API
+    const bookingUrl = await this.seatsAeroPartnerService.getBookingUrlFromTrips(deal.id);
+    
+    if (bookingUrl) {
+      this.logger.debug(`Retrieved booking URL for deal ${dealId}: ${bookingUrl}`);
+    } else {
+      this.logger.warn(`No booking URL found for deal ${dealId}`);
+    }
+
+    return bookingUrl;
+  } catch (error) {
+    this.logger.error(`Error getting booking URL for deal ${dealId}`, error);
+    return null;
+  }
+}
+```
+
+### Part 4: Frontend - Update DealCard Component
+
+**File**: `apps/web/components/deals/DealCard.tsx`
+
+Update the booking button to call the new endpoint:
+
+```typescript
+const [isLoadingBookingUrl, setIsLoadingBookingUrl] = useState(false);
+
+const handleBookNow = async () => {
+  setIsLoadingBookingUrl(true);
+  
+  try {
+    const response = await fetch(`http://localhost:3001/deals/${deal.id}/booking-url`);
+    const data = await response.json();
+    
+    if (data.bookingUrl) {
+      // Open the booking URL in a new tab
+      window.open(data.bookingUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // Show error message or fallback
+      alert('Booking URL not available for this flight. Please try again later.');
+    }
+  } catch (error) {
+    console.error('Error fetching booking URL:', error);
+    alert('Unable to retrieve booking information. Please try again later.');
+  } finally {
+    setIsLoadingBookingUrl(false);
+  }
+};
+
+// Update the booking button JSX:
+{hasBookingUrl ? (
+  <button
+    type="button"
+    onClick={handleBookNow}
+    disabled={isLoadingBookingUrl}
+    className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    {isLoadingBookingUrl ? (
+      <>
+        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Loading...
+      </>
+    ) : (
+      'Book Now'
+    )}
+  </button>
+) : (
+  <button
+    type="button"
+    disabled
+    className="inline-flex cursor-not-allowed items-center justify-center rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-500"
+  >
+    Booking unavailable
+  </button>
+)}
+```
+
+### Part 5: Update Deal Interface
+
+**File**: `apps/web/lib/deals.ts`
+
+Update the Deal interface to ensure it has the necessary fields:
+
+```typescript
+export interface Deal {
+  id: string;
+  // ... existing fields ...
+  // Make sure the deal ID can be used as availability ID for Get Trips API
+}
+```
+
+## Implementation Notes
+
+1. **Error Handling**: Implement comprehensive error handling for API failures, network issues, and invalid responses.
+
+2. **Rate Limiting**: Respect SeatsAero API rate limits when making Get Trips requests.
+
+3. **Caching**: Consider caching booking URLs to avoid repeated API calls for the same deal.
+
+4. **Security**: Validate booking URLs before redirecting to ensure they're from trusted airline domains.
+
+5. **User Experience**: Show loading states and provide clear error messages when booking URLs are unavailable.
+
+6. **Testing**: Test with various airlines and deal types to ensure the Get Trips API returns booking URLs consistently.
+
+## Expected Behavior
+
+1. User sees a "Book Now" button on all flight deals
+2. User clicks "Book Now" → button shows "Loading..." state
+3. System calls Get Trips API with the deal's availability ID
+4. System extracts booking URL from the response
+5. System opens the airline's booking page in a new tab
+6. If no booking URL is found, user sees an appropriate error message
+
+## Verification Steps
+
+1. Deploy the backend changes
+2. Deploy the frontend changes  
+3. Navigate to the deals page
+4. Click "Book Now" on various flight deals
+5. Verify that booking URLs are retrieved and redirects work properly
+6. Test error handling when booking URLs are unavailable
+
+This implementation provides a robust, secure way to enable booking functionality using the official SeatsAero Get Trips API.

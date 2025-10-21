@@ -5,7 +5,6 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
@@ -31,6 +30,8 @@
     "src/ai/**/*",
     "src/jobs/**/*",
     "src/notifications/**/*",
-    "src/watchers/**/*"
+    "src/watchers/**/*",
+    "src/onboarding/**/*",
+    "src/cards/**/*"
   ]
 }

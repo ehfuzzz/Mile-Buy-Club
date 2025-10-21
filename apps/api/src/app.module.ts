@@ -8,7 +8,7 @@ import { DealsModule } from './deals/deals.module';
 import { DataCollectionModule } from './data-collection/data-collection.module';
 import { FlightSearchModule } from './flight-search/flight-search.module';
 import { SeedModule } from './seed/seed.module';
-import { OnboardingModule } from './onboarding/onboarding.module';
+// import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -24,7 +24,8 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     DataCollectionModule,
     FlightSearchModule,
     SeedModule,
-    OnboardingModule,
+    // OnboardingModule, // Temporarily disabled due to module resolution issues
+    // CardsModule, // Temporarily disabled due to module resolution issues
   ],
   controllers: [],
   providers: [],

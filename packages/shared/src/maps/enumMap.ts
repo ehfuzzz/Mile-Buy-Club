@@ -69,10 +69,12 @@ export function normalizeCabin(value?: string | null): CabinCode | null {
   if (CABIN_MAP[normalized]) {
     return CABIN_MAP[normalized];
   }
-  const directSchema = z
-    .enum(['Y', 'W', 'J', 'F'])
-    .catch(null);
-  return directSchema.parse(normalized.toUpperCase()) as CabinCode | null;
+  try {
+    const directSchema = z.enum(['Y', 'W', 'J', 'F']);
+    return directSchema.parse(normalized.toUpperCase()) as CabinCode;
+  } catch {
+    return null;
+  }
 }
 
 export function normalizeAlertMode(value?: string | null): AlertModeCode | null {
