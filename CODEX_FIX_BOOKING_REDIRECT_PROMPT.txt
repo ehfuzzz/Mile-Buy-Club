@@ -1,0 +1,91 @@
+CODEX FIX REQUEST: Implement "Book Now" Button with Airline Website Redirect
+
+CONTEXT:
+The user is reporting that the "Book Now" button shows "Booking unavailable" instead of redirecting to the airline's website for booking. This is preventing users from actually booking flights with their points through the SeatsAero integration.
+
+CURRENT ISSUE:
+- The frontend shows "Booking unavailable" button instead of functional "Book Now" button
+- Users cannot redirect to airline websites to complete their bookings
+- The SeatsAero API provides booking URLs that should be used for redirection
+
+REQUIRED FIXES:
+
+1. **Backend: Ensure Booking URLs are Properly Mapped**
+   - Verify that `bookingUrl` field is correctly populated from SeatsAero API responses
+   - In `apps/api/src/deals/deals.service.ts`, ensure the `mapCachedDealToDealView` method properly maps `bookingUrl` from cached SeatsAero deals
+   - Check that `apps/api/src/deals/seats-aero-partner.service.ts` correctly extracts booking URLs from SeatsAero API responses
+
+2. **Frontend: Implement Functional "Book Now" Button**
+   - In the deals listing component (likely `apps/web/app/(dashboard)/deals/page.tsx`), replace the "Booking unavailable" button with a functional "Book Now" button
+   - The button should:
+     - Check if `deal.bookingUrl` exists and is a valid URL
+     - If valid, show "Book Now" button that opens the URL in a new tab
+     - If invalid/missing, show "Booking unavailable" with appropriate styling
+     - Use proper external link styling (e.g., external link icon)
+
+3. **URL Validation and Safety**
+   - Validate that booking URLs are legitimate airline websites
+   - Ensure URLs use HTTPS for security
+   - Add proper error handling for invalid URLs
+
+4. **User Experience Improvements**
+   - Add loading state when opening booking URL
+   - Show confirmation dialog before redirecting to external site
+   - Include airline name in button text (e.g., "Book on United.com")
+   - Add tooltip explaining the redirect action
+
+TECHNICAL REQUIREMENTS:
+
+**Backend Changes:**
+```typescript
+// In mapCachedDealToDealView method, ensure bookingUrl is properly mapped:
+return {
+  // ... other fields
+  bookingUrl: deal.bookingUrl || null,
+  // ... rest of fields
+};
+```
+
+**Frontend Changes:**
+```typescript
+// Example button implementation:
+const handleBookNow = (bookingUrl: string) => {
+  if (bookingUrl && isValidUrl(bookingUrl)) {
+    window.open(bookingUrl, '_blank', 'noopener,noreferrer');
+  }
+};
+
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && parsed.hostname.includes('airline');
+  } catch {
+    return false;
+  }
+};
+```
+
+**Expected Button States:**
+1. **Valid Booking URL**: Show "Book Now" button with airline branding
+2. **Invalid/Missing URL**: Show "Booking unavailable" with muted styling
+3. **Loading**: Show spinner while validating URL
+
+**Security Considerations:**
+- Validate all URLs before redirecting
+- Use `noopener,noreferrer` for external links
+- Ensure only HTTPS URLs are allowed
+- Sanitize URLs to prevent XSS attacks
+
+**Testing Requirements:**
+- Test with deals that have valid booking URLs
+- Test with deals that have invalid/missing booking URLs
+- Verify external links open correctly in new tabs
+- Test URL validation logic with various input formats
+
+**Success Criteria:**
+- Users can click "Book Now" and be redirected to airline booking pages
+- Invalid URLs show appropriate "unavailable" messaging
+- External links open securely in new tabs
+- Button text clearly indicates the action and airline
+
+Please implement these changes to enable functional booking redirection through the SeatsAero integration.

@@ -8,8 +8,8 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "@mile/shared": ["../../packages/shared/src"],
-      "@mile/shared/*": ["../../packages/shared/src/*"]
+      "@mile/shared": ["../../packages/shared/dist"],
+      "@mile/shared/*": ["../../packages/shared/dist/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

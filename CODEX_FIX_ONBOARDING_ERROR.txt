@@ -1,0 +1,288 @@
+# Fix Onboarding Endpoint 500 Error
+
+## Problem Summary
+The backend is now successfully running with all modules loaded, but the onboarding endpoint returns a 500 Internal Server Error when attempting to create a session.
+
+## Current Status ✅
+- Backend compiles: **0 errors**
+- Backend running: **Port 3001**
+- Module resolution: **Fixed** (shared package builds to CommonJS)
+- Deals API: **Working** (100 deals returned)
+- Health endpoint: **Working** (database connected)
+- Onboarding routes: **Registered** but returning 500 error
+
+## Error Details
+
+### Test Command
+```bash
+curl -X POST http://localhost:3001/onboarding/session \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "test-user"}'
+```
+
+### Response
+```json
+{"statusCode":500,"message":"Internal server error"}
+```
+
+### Server Logs
+```
+[Nest] Nest application successfully started
+🚀 Application is running on: http://localhost:3001
+
+Onboarding routes registered:
+- POST /onboarding/session
+- POST /onboarding/message
+- POST /onboarding/extract
+- GET /profile
+- PATCH /profile
+```
+
+## What's Working
+
+The module resolution is completely fixed:
+- `@mile/shared` package builds to `packages/shared/dist/`
+- Backend imports from compiled JavaScript instead of TypeScript source
+- All TypeScript compilation errors resolved
+- All modules (Onboarding, Cards, Deals, etc.) successfully loaded
+
+## Investigation Needed
+
+The 500 error is likely caused by one of these issues:
+
+### 1. Database Schema Mismatch
+The onboarding tables might not exist or have incorrect schema.
+
+**Check:**
+```sql
+-- Does the onboarding_sessions table exist?
+SELECT * FROM onboarding_sessions LIMIT 1;
+
+-- Does the user_profiles table exist?
+SELECT * FROM user_profiles LIMIT 1;
+```
+
+**Fix:** Run Prisma migrations if tables are missing:
+```bash
+cd packages/database
+npx prisma db push --accept-data-loss
+npx prisma generate
+```
+
+### 2. Missing Environment Variables
+The OpenAI API key or other required config might be missing from `.env`.
+
+**Check:**
+```bash
+# In apps/api/.env, verify these exist:
+OPENAI_API_KEY=<your-key>
+DATABASE_URL=postgresql://dev:devpass@localhost:5432/milebyclub
+```
+
+### 3. Prisma Client Not Updated
+The Prisma client might not have the latest schema types.
+
+**Fix:**
+```bash
+cd packages/database
+npx prisma generate
+```
+
+### 4. Runtime Error in OnboardingService
+There might be a bug in the `createSession` method.
+
+**Check:** Add error logging to `apps/api/src/onboarding/onboarding.service.ts`:
+```typescript
+async createSession(dto: CreateSessionDto) {
+  try {
+    console.log('Creating onboarding session for userId:', dto.userId);
+    const session = await this.prisma.onboardingSession.create({
+      data: {
+        userId: dto.userId,
+      },
+    });
+    console.log('Session created successfully:', session.id);
+    return session;
+  } catch (error) {
+    console.error('Error creating onboarding session:', error);
+    throw error;
+  }
+}
+```
+
+### 5. Controller Error Handling
+The controller might be missing error handling or validation.
+
+**Check:** `apps/api/src/onboarding/onboarding.controller.ts`
+
+## Recommended Fixes
+
+### Step 1: Add Comprehensive Error Logging
+Update `apps/api/src/onboarding/onboarding.service.ts` to log errors:
+
+```typescript
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+
+@Injectable()
+export class OnboardingService {
+  private readonly logger = new Logger(OnboardingService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locations: LocationsService,
+  ) {}
+
+  async createSession(dto: CreateSessionDto) {
+    try {
+      this.logger.log(`Creating session for user: ${dto.userId}`);
+      
+      const session = await this.prisma.onboardingSession.create({
+        data: {
+          userId: dto.userId,
+        },
+      });
+      
+      this.logger.log(`Session created: ${session.id}`);
+      return session;
+    } catch (error) {
+      this.logger.error(`Failed to create session for ${dto.userId}`, error);
+      throw error;
+    }
+  }
+  
+  // ... rest of the methods with similar error logging
+}
+```
+
+### Step 2: Ensure Database Schema is Up to Date
+```bash
+# From project root
+cd packages/database
+npx prisma generate
+npx prisma db push --accept-data-loss
+
+# Restart backend to load new Prisma client
+cd ../../apps/api
+npm run dev
+```
+
+### Step 3: Verify DTO Validation
+Ensure `CreateSessionDto` has proper validation:
+
+```typescript
+// apps/api/src/onboarding/dto/create-session.dto.ts
+import { IsString } from 'class-validator';
+
+export class CreateSessionDto {
+  @IsString()
+  userId!: string;
+}
+```
+
+### Step 4: Add Global Exception Filter
+Update `apps/api/src/main.ts` to log all unhandled errors:
+
+```typescript
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+  }));
+  
+  // Enable CORS
+  app.enableCors();
+  
+  await app.listen(3001);
+  console.log('🚀 Application is running on: http://localhost:3001');
+}
+```
+
+## Testing After Fix
+
+Once the error is identified and fixed, test all onboarding endpoints:
+
+### 1. Create Session
+```bash
+curl -X POST http://localhost:3001/onboarding/session \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "test-user-123"}'
+```
+**Expected:** `{"id": "<session-id>"}`
+
+### 2. Append Message
+```bash
+curl -X POST http://localhost:3001/onboarding/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "<session-id>",
+    "role": "user",
+    "content": "I want to travel to Europe in business class"
+  }'
+```
+**Expected:** Message object with ID
+
+### 3. Extract Profile
+```bash
+curl -X POST http://localhost:3001/onboarding/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "test-user-123",
+    "sessionId": "<session-id>"
+  }'
+```
+**Expected:** Extracted user profile
+
+### 4. Get Profile
+```bash
+curl http://localhost:3001/profile?userId=test-user-123
+```
+**Expected:** User profile with preferences
+
+## Environment Configuration
+
+Ensure these variables are set in `apps/api/.env`:
+
+```env
+# Database
+DATABASE_URL=postgresql://dev:devpass@localhost:5432/milebyclub
+
+# OpenAI (for LLM extraction)
+OPENAI_API_KEY=<your-openai-api-key>
+
+# SeatsAero
+SEATS_AERO_API_KEY=<your-seats-aero-key>
+SEATS_AERO_BASE_URL=https://seats.aero/partnerapi
+
+# Server
+PORT=3001
+NODE_ENV=development
+```
+
+## Success Criteria
+
+The fix is complete when:
+- ✅ `POST /onboarding/session` returns session ID (not 500 error)
+- ✅ All onboarding endpoints respond successfully
+- ✅ No errors in backend logs
+- ✅ Prisma can create onboarding records in database
+- ✅ Frontend at `http://localhost:3000/onboarding` works
+
+## Additional Context
+
+**What's Already Fixed:**
+- Module resolution (shared package builds properly)
+- TypeScript compilation (0 errors)
+- Backend server starts successfully
+- All routes registered correctly
+
+**What Needs Fixing:**
+- Runtime error in onboarding session creation
+- Likely database schema or Prisma client issue
+
+Please investigate the 500 error by adding logging, checking the database schema, and ensuring the Prisma client is up to date. Once you identify the root cause, implement the appropriate fix from the recommendations above.
+
