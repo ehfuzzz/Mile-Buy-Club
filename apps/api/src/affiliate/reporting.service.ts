@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { createLogger } from '@mile/shared/src/logger';
+import { createLogger } from '@mile/shared';
 import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('AffiliateReporting');

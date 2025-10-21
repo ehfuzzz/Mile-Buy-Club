@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { createLogger, maskSensitiveData } from '@mile/shared/src/logger';
+import { createLogger, maskSensitiveData } from '@mile/shared';
 import { RequestWithId } from '../types/request-with-id';
 
 const logger = createLogger('HTTP');

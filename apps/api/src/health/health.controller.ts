@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { createLogger } from '@mile/shared/src/logger';
+import { createLogger } from '@mile/shared';
 import { getErrorMessage, getErrorStack } from '../common/utils/error.utils';
 
 const logger = createLogger('Health');

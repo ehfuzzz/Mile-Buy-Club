@@ -388,7 +388,7 @@ export class DealsService {
 
   async getSeatsAeroStats(): Promise<{ totalDeals: number; byProgram: { program: string; count: number }[] }> {
     const now = new Date();
-    const stats: SeatsAeroProgramStat[] = await this.prisma.seatsAeroDeal.groupBy({
+    const stats = await this.prisma.seatsAeroDeal.groupBy({
       by: ['program'],
       _count: { id: true },
       where: {
@@ -396,8 +396,11 @@ export class DealsService {
       },
     });
 
-    const totalDeals = stats.reduce((sum, stat) => sum + stat._count.id, 0);
-    const byProgram = stats.map((stat) => ({
+    const totalDeals = stats.reduce(
+      (sum: number, stat: { _count: { id: number } }) => sum + stat._count.id,
+      0,
+    );
+    const byProgram = stats.map((stat: { program: string; _count: { id: number } }) => ({
       program: stat.program,
       count: stat._count.id,
     }));
