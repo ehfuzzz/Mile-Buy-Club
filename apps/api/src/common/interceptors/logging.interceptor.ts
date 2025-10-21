@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { createLogger } from '@mile/shared/src/logger';
+import { createLogger } from '@mile/shared';
 import { RequestWithId } from '../types/request-with-id';
 
 const logger = createLogger('API');

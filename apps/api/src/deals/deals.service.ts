@@ -396,8 +396,11 @@ export class DealsService {
       },
     });
 
-    const totalDeals = stats.reduce((sum, stat) => sum + stat._count.id, 0);
-    const byProgram = stats.map((stat) => ({
+    const totalDeals = stats.reduce(
+      (sum: number, stat: { _count: { id: number } }) => sum + stat._count.id,
+      0,
+    );
+    const byProgram = stats.map((stat: { program: string; _count: { id: number } }) => ({
       program: stat.program,
       count: stat._count.id,
     }));
