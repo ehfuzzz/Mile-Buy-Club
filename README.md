@@ -31,6 +31,17 @@ npm run db:push
 npm run dev
 ```
 
+### Frontend Environment Variables
+
+The Next.js app expects environment variables to be configured in `apps/web/.env.local`.
+
+```bash
+cd apps/web
+cp .env.local.example .env.local
+```
+
+Then update `.env.local` with the backend API URL (defaults to `http://localhost:3001`) and a valid `NEXT_PUBLIC_DEMO_USER_ID` from your database.
+
 Access the application:
 - **Frontend**: http://localhost:3000
 - **API**: http://localhost:3001
