@@ -4,8 +4,7 @@ import { TripQuery, PlanResponse, ConstraintViolation, UserState } from '@mile/s
 import { FlightCacheRepository } from './flight-cache.repository';
 import { applyConstraints } from './constraints';
 import { rankOptions } from './ranker';
-
-const MAX_CACHE_AGE_MINUTES = 45;
+import { CACHE_MAX_AGE_MINUTES, isCacheStale, PLANNER_DATA_SOURCE } from './constants';
 
 @Injectable()
 export class PlanService {
@@ -18,7 +17,7 @@ export class PlanService {
     this.logger.log('planner.plan.start', {
       requestId,
       sessionId: this.safeSessionId(input.userState),
-      dataSource: 'db_cache_only',
+      dataSource: PLANNER_DATA_SOURCE,
       querySummary: {
         origins: input.query.origins?.length ?? 0,
         destinations: Array.isArray(input.query.destinations)
@@ -71,12 +70,12 @@ export class PlanService {
       } as PlanResponse;
     }
 
-    const stale = this.isStale(freshestAt, MAX_CACHE_AGE_MINUTES);
+    const stale = isCacheStale(freshestAt, CACHE_MAX_AGE_MINUTES);
     if (stale && !input.query.allowStaleCache) {
       const reasons: ConstraintViolation[] = [
         {
           code: 'CACHE_STALE',
-          message: `Cache older than ${MAX_CACHE_AGE_MINUTES} minutes`,
+          message: `Cache older than ${CACHE_MAX_AGE_MINUTES} minutes`,
           meta: { freshestAt },
         },
       ];
@@ -129,11 +128,7 @@ export class PlanService {
   }
 
   private isStale(freshestAt: string | undefined, maxMinutes: number): boolean {
-    if (!freshestAt) return true;
-    const updated = new Date(freshestAt);
-    if (Number.isNaN(updated.getTime())) return true;
-    const ageMinutes = (Date.now() - updated.getTime()) / 60000;
-    return ageMinutes > maxMinutes;
+    return isCacheStale(freshestAt, maxMinutes);
   }
 
   private safeSessionId(userState: UserState): string | undefined {
