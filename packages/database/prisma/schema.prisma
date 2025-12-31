@@ -860,6 +860,7 @@ model OnboardingSession {
 
   user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages OnboardingMessage[]
+  savedPlans SavedPlan[]
 }
 
 model OnboardingMessage {
@@ -883,6 +884,34 @@ model OnboardingUserState {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================================
+// PLANNER SAVED PLANS
+// ============================================================================
+
+enum SavedPlanVisibility {
+  private
+  public
+}
+
+model SavedPlan {
+  id           String              @id @default(cuid())
+  sessionId    String
+  title        String?
+  visibility   SavedPlanVisibility @default(private)
+  shareToken   String?             @unique
+  queryJson    Json
+  selectedJson Json
+  provenance   Json
+
+  session OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId, createdAt])
+  @@index([visibility])
 }
 
 // ============================================================================

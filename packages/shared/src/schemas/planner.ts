@@ -98,3 +98,63 @@ export const PLAN_RESPONSE_SCHEMA = z.union([
 ]);
 
 export type PlanResponse = z.infer<typeof PLAN_RESPONSE_SCHEMA>;
+
+export const SAVED_PLAN_VISIBILITY_SCHEMA = z.enum(['private', 'public']);
+export type SavedPlanVisibility = z.infer<typeof SAVED_PLAN_VISIBILITY_SCHEMA>;
+
+export const SAVED_PLAN_PROVENANCE_SCHEMA = z.object({
+  plannerVersion: z.string(),
+  cacheFreshestAt: z.string().optional(),
+  cacheStale: z.boolean(),
+  consideredCount: z.number().int().nonnegative(),
+  dataSource: z.literal('db_cache_only'),
+  validatedAt: z.string(),
+});
+
+export const SAVED_PLAN_SCHEMA = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  title: z.string().optional(),
+  visibility: SAVED_PLAN_VISIBILITY_SCHEMA,
+  shareToken: z.string().optional(),
+  query: TRIP_QUERY_SCHEMA,
+  selected: RANKED_OPTION_SCHEMA,
+  provenance: SAVED_PLAN_PROVENANCE_SCHEMA,
+});
+
+export const SAVE_PLAN_REQUEST_SCHEMA = z.object({
+  query: TRIP_QUERY_SCHEMA,
+  selectedOption: RANKED_OPTION_SCHEMA,
+  title: z.string().optional(),
+  makePublic: z.boolean().optional().default(false),
+});
+export type SavePlanRequest = z.infer<typeof SAVE_PLAN_REQUEST_SCHEMA>;
+
+export const SAVE_PLAN_RESPONSE_SCHEMA = z.object({
+  id: z.string(),
+  shareUrl: z.string().optional(),
+  savedPlan: SAVED_PLAN_SCHEMA,
+});
+
+export const LIST_SAVED_PLANS_RESPONSE_SCHEMA = z.object({
+  plans: z.array(
+    SAVED_PLAN_SCHEMA.pick({
+      id: true,
+      createdAt: true,
+      title: true,
+      visibility: true,
+      shareToken: true,
+      query: true,
+      provenance: true,
+    }),
+  ),
+});
+
+export const GET_SAVED_PLAN_RESPONSE_SCHEMA = z.object({
+  plan: SAVED_PLAN_SCHEMA,
+  currentCacheStatus: z
+    .object({ freshestAt: z.string().optional(), stale: z.boolean() })
+    .optional(),
+});
