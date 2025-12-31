@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   AlertMode,
   Alliance,
@@ -12,21 +12,29 @@ import {
   DestMode,
   LoyaltyKind,
 } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { LocationsService, ResolveLocationInput } from './locations.service';
 import {
+  OnboardingSessionResponse,
   onboardingExtractionSchema,
   OnboardingExtraction,
   normalizeCabin,
   normalizeAlertMode,
   normalizeAlliance,
   resolveAirlineCode,
+  STATE_PATCH_SCHEMA,
+  USER_STATE_SCHEMA,
+  UserState,
+  createDefaultUserState,
+  createLogger,
 } from '@mile/shared';
 import { getOpenAIClient } from '../lib/openai';
 import { OnboardingMessageDto } from './dto/message.dto';
 import { ExtractProfileDto } from './dto/extract.dto';
 import { UpdateProfileDto, LocationInputDto } from './dto/update-profile.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
+import { applyStatePatch, validationErrorsFromIssues } from './state-machine';
 
 const SYSTEM_PROMPT = `You are an expert travel intake assistant. Convert chatty answers into a strict JSON profile for flight + hotel planning. 
 - Map airports/cities/regions into {kind, code, name}. Use IATA codes when clear; otherwise keep name and leave code null.
@@ -39,26 +47,268 @@ Output STRICT JSON only.`;
 @Injectable()
 export class OnboardingService {
   private readonly logger = new Logger(OnboardingService.name);
+  private readonly structuredLogger = createLogger('OnboardingService');
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly locations: LocationsService,
   ) {}
 
-  async createSession(dto: CreateSessionDto) {
-    await this.ensureUserExists(dto.userId);
+  async createSession(
+    dto: CreateSessionDto,
+    context: { requestId?: string; sessionId?: string } = {},
+  ): Promise<OnboardingSessionResponse> {
+    const requestId = context.requestId ?? randomUUID();
+    const sessionIdFromRequest = context.sessionId;
+
+    await this.ensureUserExists(dto.userId, requestId);
 
     try {
-      const session = await this.prisma.onboardingSession.create({
-        data: {
+      if (sessionIdFromRequest) {
+        const existingById = await this.prisma.onboardingSession.findUnique({
+          where: { id: sessionIdFromRequest },
+        });
+
+        if (existingById?.userId === dto.userId) {
+          const state = await this.loadOrCreateUserState(dto.userId, requestId);
+          this.structuredLogger.info('Resuming onboarding session by provided session id', {
+            requestId,
+            sessionId: existingById.id,
+            userId: dto.userId,
+            created: false,
+          });
+          return this.buildSessionResponse(existingById.id, false, state, requestId);
+        }
+
+        if (existingById && existingById.userId !== dto.userId) {
+          this.structuredLogger.warn('Session user mismatch', {
+            requestId,
+            sessionId: existingById.id,
+            userId: dto.userId,
+          });
+        }
+      }
+
+      const existing = await this.prisma.onboardingSession.findFirst({
+        where: { userId: dto.userId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (existing) {
+        const state = await this.loadOrCreateUserState(dto.userId, requestId);
+        this.structuredLogger.info('Resuming onboarding session by user id', {
+          requestId,
+          sessionId: existing.id,
           userId: dto.userId,
+          created: false,
+        });
+        return this.buildSessionResponse(existing.id, false, state, requestId);
+      }
+
+      const { session, state } = await this.prisma.$transaction(async (tx) => {
+        const createdSession = await tx.onboardingSession.create({
+          data: {
+            userId: dto.userId,
+          },
+        });
+
+        const defaultState = createDefaultUserState();
+        const storedState = await tx.onboardingUserState.upsert({
+          where: { userId: dto.userId },
+          update: {},
+          create: {
+            userId: dto.userId,
+            state: defaultState as Prisma.InputJsonValue,
+            version: defaultState.version,
+          },
+        });
+
+        return {
+          session: createdSession,
+          state: this.parseUserState(storedState.state, storedState.version, requestId),
+        };
+      });
+
+      this.structuredLogger.info('Created onboarding session', {
+        requestId,
+        sessionId: session.id,
+        userId: dto.userId,
+        created: true,
+      });
+      return this.buildSessionResponse(session.id, true, state, requestId);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.structuredLogger.error('Failed to create onboarding session', {
+        requestId,
+        userId: dto.userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpException(
+        {
+          errorCode: 'ONBOARDING_SESSION_CREATE_FAILED',
+          message: 'Unable to create onboarding session',
+          requestId,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getStateForSession(sessionId: string, requestId?: string): Promise<OnboardingSessionResponse> {
+    const resolvedRequestId = requestId ?? randomUUID();
+    try {
+      const session = await this.prisma.onboardingSession.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new HttpException(
+          {
+            errorCode: 'UNAUTHORIZED',
+            message: 'Invalid onboarding session',
+            requestId: resolvedRequestId,
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const state = await this.loadOrCreateUserState(session.userId, resolvedRequestId);
+
+      this.structuredLogger.info('Fetched onboarding state', {
+        requestId: resolvedRequestId,
+        sessionId,
+        userId: session.userId,
+        version: state.version,
+      });
+
+      return this.buildSessionResponse(session.id, false, state, resolvedRequestId);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      return this.handleUnexpectedError(
+        resolvedRequestId,
+        'ONBOARDING_STATE_FETCH_FAILED',
+        'Unable to fetch onboarding state',
+        error,
+      );
+    }
+  }
+
+  async patchState(
+    sessionId: string,
+    patchPayload: unknown,
+    requestId?: string,
+  ): Promise<Omit<OnboardingSessionResponse, 'created'>> {
+    const resolvedRequestId = requestId ?? randomUUID();
+    try {
+      const session = await this.prisma.onboardingSession.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new HttpException(
+          {
+            errorCode: 'UNAUTHORIZED',
+            message: 'Invalid onboarding session',
+            requestId: resolvedRequestId,
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const parsedPatch = STATE_PATCH_SCHEMA.safeParse(patchPayload);
+      if (!parsedPatch.success) {
+        throw new HttpException(
+          {
+            errorCode: 'STATE_VALIDATION_FAILED',
+            errors: validationErrorsFromIssues(parsedPatch.error.issues),
+            requestId: resolvedRequestId,
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const storedState = await this.prisma.onboardingUserState.findUnique({
+        where: { userId: session.userId },
+      });
+
+      const currentState =
+        storedState !== null
+          ? this.parseUserState(storedState.state, storedState.version, resolvedRequestId)
+          : createDefaultUserState();
+
+      const expectedVersion = storedState?.version ?? currentState.version;
+      if (parsedPatch.data.baseVersion !== expectedVersion) {
+        throw new HttpException(
+          {
+            errorCode: 'STATE_VERSION_CONFLICT',
+            message: 'Onboarding state version conflict',
+            requestId: resolvedRequestId,
+            expectedVersion,
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const patched = applyStatePatch(currentState, parsedPatch.data);
+      if (!patched.ok) {
+        throw new HttpException(
+          {
+            errorCode: 'STATE_VALIDATION_FAILED',
+            errors: patched.errors,
+            requestId: resolvedRequestId,
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const nextVersion = expectedVersion + 1;
+      const nextState: UserState = {
+        ...patched.userState,
+        version: nextVersion,
+      };
+
+      const updated = await this.prisma.onboardingUserState.upsert({
+        where: { userId: session.userId },
+        create: {
+          userId: session.userId,
+          state: nextState as Prisma.InputJsonValue,
+          version: nextVersion,
+        },
+        update: {
+          state: nextState as Prisma.InputJsonValue,
+          version: nextVersion,
         },
       });
 
-      this.logger.log(`Created onboarding session ${session.id} for user ${dto.userId}`);
-      return session;
+      this.structuredLogger.info('Patched onboarding state', {
+        requestId: resolvedRequestId,
+        sessionId,
+        userId: session.userId,
+        version: updated.version,
+      });
+
+      return {
+        sessionId,
+        userStateVersion: updated.version,
+        userState: nextState,
+        onboardingStatus: nextState.onboarding.status,
+        requestId: resolvedRequestId,
+      };
     } catch (error) {
-      this.handlePrismaError('createSession', error, dto.userId);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      return this.handleUnexpectedError(
+        resolvedRequestId,
+        'ONBOARDING_STATE_PATCH_FAILED',
+        'Unable to apply onboarding state patch',
+        error,
+      );
     }
   }
 
@@ -194,6 +444,97 @@ export class OnboardingService {
     });
 
     return this.getProfile(userId);
+  }
+
+  private buildSessionResponse(
+    sessionId: string,
+    created: boolean,
+    state: UserState,
+    requestId: string,
+  ): OnboardingSessionResponse {
+    return {
+      id: sessionId,
+      sessionId,
+      created,
+      userStateVersion: state.version,
+      userState: state,
+      onboardingStatus: state.onboarding.status,
+      requestId,
+    };
+  }
+
+  private parseUserState(rawState: unknown, version: number, requestId: string): UserState {
+    const parsed = USER_STATE_SCHEMA.safeParse(rawState);
+    if (!parsed.success) {
+      this.structuredLogger.error('Stored onboarding state failed validation', {
+        requestId,
+        version,
+        errors: parsed.error.issues,
+      });
+      throw new HttpException(
+        {
+          errorCode: 'STATE_VALIDATION_FAILED',
+          errors: validationErrorsFromIssues(parsed.error.issues),
+          requestId,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (parsed.data.version !== version) {
+      this.structuredLogger.error('Version mismatch between stored record and payload', {
+        requestId,
+        version,
+        payloadVersion: parsed.data.version,
+      });
+      throw new HttpException(
+        {
+          errorCode: 'STATE_VERSION_MISMATCH',
+          message: 'Stored onboarding state version does not match record',
+          requestId,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return parsed.data;
+  }
+
+  private async loadOrCreateUserState(userId: string, requestId: string): Promise<UserState> {
+    const existing = await this.prisma.onboardingUserState.findUnique({
+      where: { userId },
+    });
+
+    if (existing) {
+      return this.parseUserState(existing.state, existing.version, requestId);
+    }
+
+    const defaultState = createDefaultUserState();
+    const created = await this.prisma.onboardingUserState.create({
+      data: {
+        userId,
+        state: defaultState as Prisma.InputJsonValue,
+        version: defaultState.version,
+      },
+    });
+
+    return this.parseUserState(created.state, created.version, requestId);
+  }
+
+  private handleUnexpectedError(requestId: string, errorCode: string, message: string, error: unknown): never {
+    this.structuredLogger.error(message, {
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    throw new HttpException(
+      {
+        errorCode,
+        message,
+        requestId,
+      },
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
   }
 
   protected async runExtraction(transcript: string): Promise<OnboardingExtraction> {
@@ -584,15 +925,27 @@ export class OnboardingService {
     });
   }
 
-  private async ensureUserExists(userId: string) {
+  private async ensureUserExists(userId: string, requestId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true },
     });
 
     if (!user) {
+      const resolvedRequestId = requestId ?? randomUUID();
       this.logger.warn(`Attempted to start onboarding for missing user ${userId}`);
-      throw new NotFoundException('User not found');
+      this.structuredLogger.warn('User not found for onboarding', {
+        requestId: resolvedRequestId,
+        userId,
+      });
+      throw new HttpException(
+        {
+          errorCode: 'USER_NOT_FOUND',
+          message: 'User not found',
+          requestId: resolvedRequestId,
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
   }
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { HealthModule } from './health/health.module';
@@ -9,6 +9,7 @@ import { DataCollectionModule } from './data-collection/data-collection.module';
 import { FlightSearchModule } from './flight-search/flight-search.module';
 import { SeedModule } from './seed/seed.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -29,4 +30,8 @@ import { OnboardingModule } from './onboarding/onboarding.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}
