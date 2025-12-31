@@ -10,6 +10,7 @@ import { FlightSearchModule } from './flight-search/flight-search.module';
 import { SeedModule } from './seed/seed.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { PlannerModule } from './planner/planner.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     FlightSearchModule,
     SeedModule,
     OnboardingModule,
+    PlannerModule,
   ],
   controllers: [],
   providers: [],
