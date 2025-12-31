@@ -46,6 +46,7 @@ model User {
   trips              Trip[]
   aiSessions         AiSession[]
   onboardingSessions OnboardingSession[]
+  onboardingState    OnboardingUserState?
   tripPlans          TripPlan[]
   mediaInsights      MediaInsight[]
   preference         UserPreference?
@@ -871,6 +872,17 @@ model OnboardingMessage {
   session OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
+}
+
+model OnboardingUserState {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  state     Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================================

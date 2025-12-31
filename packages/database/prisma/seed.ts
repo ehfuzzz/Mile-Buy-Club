@@ -203,6 +203,7 @@ async function main() {
   await prisma.userProfile.deleteMany();
   await prisma.onboardingMessage.deleteMany();
   await prisma.onboardingSession.deleteMany();
+  await prisma.onboardingUserState.deleteMany();
   await prisma.location.deleteMany();
   await prisma.airline.deleteMany();
   await prisma.hotelProgram.deleteMany();
@@ -225,6 +226,25 @@ async function main() {
   });
 
   console.log(`✅ Created demo user: ${user.email}`);
+
+  await prisma.onboardingUserState.create({
+    data: {
+      userId: user.id,
+      state: {
+        version: 1,
+        onboarding: {
+          status: 'new',
+          startedAt: new Date().toISOString(),
+        },
+        profile: {},
+        travelPrefs: { homeAirports: [] },
+        points: { programs: [], transferPreferences: [] },
+        hotelPrefs: { chains: [] },
+        constraints: {},
+      },
+      version: 1,
+    },
+  });
 
   await prisma.location.createMany({ data: locationSeeds });
   console.log(`✅ Seeded ${locationSeeds.length} locations`);
