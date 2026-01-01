@@ -44,6 +44,20 @@ const SYSTEM_PROMPT = `You are an expert travel intake assistant. Convert chatty
 - Preserve numbers as numbers (not strings).
 Output STRICT JSON only.`;
 
+const DestModeEnum = (DestMode as any) ?? { WISH: 'WISH', AVOID: 'AVOID' } as const;
+const TripStyleEnum = (TripStyle as any) ?? {
+  BEACH: 'BEACH',
+  CITY: 'CITY',
+  NATURE: 'NATURE',
+  NIGHTLIFE: 'NIGHTLIFE',
+  KID_FRIENDLY: 'KID_FRIENDLY',
+  PACE_CHILL: 'PACE_CHILL',
+  PACE_PACKED: 'PACE_PACKED',
+} as const;
+const AllianceEnum = (Alliance as any) ?? { NONE: 'NONE', STAR: 'STAR', ONEWORLD: 'ONEWORLD', SKYTEAM: 'SKYTEAM' } as const;
+const PrefModeEnum = (PrefMode as any) ?? { PREFER: 'PREFER', AVOID: 'AVOID' } as const;
+const LoyaltyKindEnum = (LoyaltyKind as any) ?? { AIR: 'AIR', HOTEL: 'HOTEL' } as const;
+
 @Injectable()
 export class OnboardingService {
   private readonly logger = new Logger(OnboardingService.name);
@@ -610,13 +624,13 @@ export class OnboardingService {
         source: 'LLM_EXTRACT',
       }));
 
-      await this.replaceDestinationPrefs(tx, userId, extraction.destinations?.wish, DestMode.WISH);
-      await this.replaceDestinationPrefs(tx, userId, extraction.destinations?.avoid, DestMode.AVOID);
+      await this.replaceDestinationPrefs(tx, userId, extraction.destinations?.wish, DestModeEnum.WISH);
+      await this.replaceDestinationPrefs(tx, userId, extraction.destinations?.avoid, DestModeEnum.AVOID);
 
       await tx.userTripStyle.deleteMany({ where: { userId } });
       if (extraction.styles?.length) {
         await tx.userTripStyle.createMany({
-          data: extraction.styles.map((style) => ({ userId, style: style as TripStyle })),
+          data: extraction.styles.map((style) => ({ userId, style: (TripStyleEnum as any)[style] ?? (style as TripStyle) })),
         });
       }
 
@@ -771,20 +785,20 @@ export class OnboardingService {
       const label = labelMap.get(code) ?? code;
       await tx.airline.upsert({
         where: { code2: code },
-        create: { code2: code, name: label, alliance: Alliance.NONE },
+        create: { code2: code, name: label, alliance: AllianceEnum.NONE },
         update: {},
       });
-      entries.push({ userId, code2: code, mode: PrefMode.PREFER });
+      entries.push({ userId, code2: code, mode: PrefModeEnum.PREFER });
     }
 
     for (const code of avoidSet) {
       const label = labelMap.get(code) ?? code;
       await tx.airline.upsert({
         where: { code2: code },
-        create: { code2: code, name: label, alliance: Alliance.NONE },
+        create: { code2: code, name: label, alliance: AllianceEnum.NONE },
         update: {},
       });
-      entries.push({ userId, code2: code, mode: PrefMode.AVOID });
+      entries.push({ userId, code2: code, mode: PrefModeEnum.AVOID });
     }
 
     if (entries.length) {
@@ -806,12 +820,12 @@ export class OnboardingService {
     for (const allianceValue of preferences.prefer ?? []) {
       const normalized = normalizeAlliance(allianceValue);
       if (!normalized || normalized === 'NONE') continue;
-      data.push({ userId, alliance: normalized as Alliance, mode: PrefMode.PREFER });
+      data.push({ userId, alliance: normalized as Alliance, mode: PrefModeEnum.PREFER });
     }
     for (const allianceValue of preferences.avoid ?? []) {
       const normalized = normalizeAlliance(allianceValue);
       if (!normalized || normalized === 'NONE') continue;
-      data.push({ userId, alliance: normalized as Alliance, mode: PrefMode.AVOID });
+      data.push({ userId, alliance: normalized as Alliance, mode: PrefModeEnum.AVOID });
     }
 
     if (data.length) {
@@ -839,7 +853,7 @@ export class OnboardingService {
         create: { id: programId, name: programId },
         update: {},
       });
-      data.push({ userId, programId, mode: PrefMode.PREFER });
+      data.push({ userId, programId, mode: PrefModeEnum.PREFER });
       avoidSet.delete(programId);
     }
 
@@ -849,7 +863,7 @@ export class OnboardingService {
         create: { id: programId, name: programId },
         update: {},
       });
-      data.push({ userId, programId, mode: PrefMode.AVOID });
+      data.push({ userId, programId, mode: PrefModeEnum.AVOID });
     }
 
     if (data.length) {
@@ -878,7 +892,7 @@ export class OnboardingService {
     for (const balance of uniqueBalances.values()) {
       await tx.loyaltyProgram.upsert({
         where: { id: balance.program_id },
-        create: { id: balance.program_id, kind: LoyaltyKind.AIR, name: balance.program_id },
+        create: { id: balance.program_id, kind: LoyaltyKindEnum.AIR, name: balance.program_id },
         update: {},
       });
     }

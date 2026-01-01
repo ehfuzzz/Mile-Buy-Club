@@ -6,6 +6,7 @@ import { PlanService } from '../plan.service';
 import { FlightCacheRepository } from '../flight-cache.repository';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OnboardingService } from '../../onboarding/onboarding.service';
+import { SavedPlansService } from '../saved-plans.service';
 import { TripQuery, createDefaultUserState } from '@mile/shared';
 
 jest.mock('../../deals/seats-aero-partner.service', () => {
@@ -89,6 +90,7 @@ describe('Planner API (integration)', () => {
       providers: [
         PlanService,
         FlightCacheRepository,
+        SavedPlansService,
         { provide: PrismaService, useValue: prisma },
         { provide: OnboardingService, useValue: onboardingMock },
       ],

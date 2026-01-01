@@ -20,10 +20,16 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { OnboardingMessageDto } from './dto/message.dto';
 import { ExtractProfileDto } from './dto/extract.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { OnboardingChatService } from './onboarding-chat.service';
+import { OnboardingChatMessageDto } from './dto/chat-message.dto';
+import { OnboardingChatSessionDto } from './dto/new-session.dto';
 
 @Controller()
 export class OnboardingController {
-  constructor(private readonly onboardingService: OnboardingService) {}
+  constructor(
+    private readonly onboardingService: OnboardingService,
+    private readonly chatService: OnboardingChatService,
+  ) {}
 
   private parseSessionFromCookies(rawCookie?: string): string | undefined {
     if (!rawCookie) {
@@ -66,6 +72,16 @@ export class OnboardingController {
   @Post('onboarding/message')
   appendMessage(@Body() dto: OnboardingMessageDto) {
     return this.onboardingService.appendMessage(dto);
+  }
+
+  @Post('onboarding/chat/session')
+  createChatSession(@Body() dto: OnboardingChatSessionDto) {
+    return this.chatService.createSession(dto);
+  }
+
+  @Post('onboarding/chat/message')
+  appendChatMessage(@Body() dto: OnboardingChatMessageDto) {
+    return this.chatService.appendMessage(dto);
   }
 
   @Post('onboarding/extract')

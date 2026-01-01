@@ -222,6 +222,29 @@ Please read our [Contributing Guide](docs/CONTRIBUTING.md) for details on code s
 
 MIT
 
+## Local llama.cpp for onboarding chat
+
+- Start a local llama.cpp OpenAI-compatible server (Metal offload example):
+
+  ```bash
+  ./llama-server -m /path/to/qwen2.5-7b-instruct.gguf -ngl 99 -c 8192 --host 127.0.0.1 --port 8080
+  ```
+
+- Call the onboarding endpoints:
+
+  ```bash
+  curl -X POST http://localhost:3001/onboarding/chat/session -H 'Content-Type: application/json' -d '{}'
+  curl -X POST http://localhost:3001/onboarding/chat/message -H 'Content-Type: application/json' \\
+    -d '{\"sessionId\":\"<id>\",\"message\":\"Hi\"}'
+  ```
+
+- Prisma commands (database package scope):
+
+  ```bash
+  npm run db:generate --workspaces --if-present
+  npm run db:push --workspaces --if-present
+  ```
+
 ## Support
 
 For questions or issues, please open a GitHub issue or contact the team.
