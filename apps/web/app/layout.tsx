@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Sora } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { cn } from '@/lib/utils';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-sans' });
+const sora = Sora({ subsets: ['latin'], display: 'swap', variable: '--font-display' });
 const THEME_COLOR = '#0f172a';
 
 export const metadata: Metadata = {
@@ -32,7 +34,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body
+        className={cn(
+          'min-h-screen bg-[color:var(--bg)] text-[color:var(--text)] antialiased font-sans',
+          inter.variable,
+          sora.variable
+        )}
+      >
         <AuthProvider>
           <QueryProvider>
             <div className="flex min-h-screen flex-col">
