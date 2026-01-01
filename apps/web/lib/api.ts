@@ -1,14 +1,19 @@
 /**
  * API fetch wrapper with error handling
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://localhost:3001';
 
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  status?: number;
   error?: {
     code: string;
     message: string;
+    details?: unknown;
   };
 }
 
@@ -28,23 +33,33 @@ export async function apiFetch<T>(
       ...options,
     });
 
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+    const payload = isJson ? await response.json() : await response.text();
+
     console.log('API response status:', response.status);
-    console.log('API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('API response body:', payload);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error response:', errorText);
-      throw new Error(`API error: ${response.statusText}`);
+      const body = (payload ?? {}) as { code?: string; errorCode?: string; message?: string; details?: unknown };
+      return {
+        success: false,
+        status: response.status,
+        error: {
+          code: body.code || body.errorCode || `HTTP_${response.status}`,
+          message: body.message || response.statusText,
+          details: body.details,
+        },
+      };
     }
 
-    const data = await response.json();
-    console.log('API response data:', data);
-    return { success: true, data };
+    return { success: true, status: response.status, data: payload as T };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('API fetch error:', error);
     return {
       success: false,
+      status: undefined,
       error: {
         code: 'API_ERROR',
         message,
