@@ -9,6 +9,10 @@ const nextConfig = {
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
+  transpilePackages: ['@mile/shared'],
+  experimental: {
+    externalDir: true,
+  },
   eslint: {
     dirs: ['app', 'components', 'lib'],
   },

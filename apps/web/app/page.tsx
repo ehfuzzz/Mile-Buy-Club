@@ -191,7 +191,7 @@ export default function Home() {
                 asChild
                 onClick={() => handleCta('get_started', 'hero')}
               >
-                <Link href="/signup" className="gap-2">
+                <Link href="/onboarding/chat" className="gap-2">
                   Get started free
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -386,7 +386,7 @@ export default function Home() {
                 asChild
                 onClick={() => handleCta('get_started', 'final_cta')}
               >
-                <Link href="/signup" className="gap-2">
+                <Link href="/onboarding/chat" className="gap-2">
                   Get started free
                   <ArrowRight className="h-5 w-5" />
                 </Link>

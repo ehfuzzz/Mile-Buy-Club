@@ -78,7 +78,7 @@ export function Header({ variant = 'solid', onNavClick }: HeaderProps) {
             Sign in
           </Link>
           <Link
-            href="/signup"
+            href="/onboarding/chat"
             onClick={() => handleNavClick('signup')}
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] px-4 py-2 text-sm font-semibold text-[#031325] shadow-[0_12px_40px_rgba(66,232,201,0.3)]"
           >
@@ -118,7 +118,7 @@ export function Header({ variant = 'solid', onNavClick }: HeaderProps) {
               Sign in
             </Link>
             <Link
-              href="/signup"
+              href="/onboarding/chat"
               onClick={() => handleNavClick('signup')}
               className="rounded-full bg-[linear-gradient(135deg,var(--accent),var(--accent-2))] px-4 py-2 text-center font-semibold text-[#031325]"
             >

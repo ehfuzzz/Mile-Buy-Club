@@ -9,6 +9,10 @@ const TelemetryEventName = z.union([
   z.literal('cta_click'),
   z.literal('nav_click'),
   z.literal('demo_click'),
+  z.literal('onboarding_chat_view'),
+  z.literal('onboarding_chat_message_sent'),
+  z.literal('onboarding_chat_message_received'),
+  z.literal('onboarding_completed'),
 ]);
 
 const allowedProps = z
@@ -19,6 +23,8 @@ const allowedProps = z
       .optional(),
     cta: z.enum(['get_started', 'sign_in', 'browse_deals', 'watch_demo']).optional(),
     scrollDepth: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(90)]).optional(),
+    missingFieldsCount: z.number().int().nonnegative().optional(),
+    ruleCount: z.number().int().nonnegative().optional(),
   })
   .strict();
 
