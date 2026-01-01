@@ -2,8 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #050814;
+  --bg2: #070d1f;
+  --card: #0b1630;
+  --card-strong: #0f1f3f;
+  --text: #eaf1ff;
+  --muted: rgba(234, 241, 255, 0.7);
+  --accent: #42e8c9;
+  --accent-2: #7aa6ff;
+  --glow: rgba(66, 232, 201, 0.18);
+  --outline: rgba(122, 166, 255, 0.3);
+}
+
 * {
-  @apply border-slate-200;
+  @apply border-transparent;
 }
 
 html {
@@ -11,15 +24,83 @@ html {
 }
 
 body {
-  @apply bg-white text-slate-950 dark:bg-slate-950 dark:text-white;
+  background: radial-gradient(circle at 20% 20%, rgba(66, 232, 201, 0.08), transparent 22%),
+    radial-gradient(circle at 80% 10%, rgba(122, 166, 255, 0.08), transparent 18%),
+    radial-gradient(circle at 50% 70%, rgba(66, 232, 201, 0.06), transparent 25%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: rgba(66, 232, 201, 0.25);
+    color: var(--text);
+  }
 }
 
 @layer components {
   .container {
-    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
-  .gradient-text {
-    @apply bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent;
+  .glass-card {
+    background: linear-gradient(145deg, rgba(11, 22, 48, 0.92), rgba(7, 13, 31, 0.94));
+    border: 1px solid rgba(122, 166, 255, 0.15);
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(66, 232, 201, 0.05);
+  }
+
+  .gradient-border {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(66, 232, 201, 0.45), rgba(122, 166, 255, 0.45));
+    mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    z-index: -1;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(122, 166, 255, 0.25);
+    color: var(--text);
+  }
+
+  .cta-primary {
+    @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold shadow-lg transition-transform duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #031325;
+    box-shadow: 0 15px 45px rgba(66, 232, 201, 0.25), 0 10px 35px rgba(122, 166, 255, 0.2);
+  }
+
+  .cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 55px rgba(66, 232, 201, 0.35), 0 14px 45px rgba(122, 166, 255, 0.28);
+  }
+
+  .cta-secondary {
+    @apply inline-flex items-center justify-center rounded-full px-5 py-3 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(122, 166, 255, 0.25);
+    color: var(--text);
+  }
+
+  .cta-secondary:hover {
+    border-color: rgba(66, 232, 201, 0.6);
+    color: #eafffb;
   }
 }

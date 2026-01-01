@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "framer-motion": ["./lib/framer-motion-stub"]
     },
     "incremental": true,
     "plugins": [
