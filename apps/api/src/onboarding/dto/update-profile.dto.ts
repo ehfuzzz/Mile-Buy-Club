@@ -1,4 +1,4 @@
-import { AlertMode, Cabin, LocationKind } from '@prisma/client';
+import { AlertMode, Cabin, LocationKind as PrismaLocationKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -11,9 +11,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+const LocationKind = (PrismaLocationKind as any) ?? { AIRPORT: 'AIRPORT', CITY: 'CITY', REGION: 'REGION' } as const;
+const CabinEnum = (Cabin as any) ?? { Y: 'Y', W: 'W', J: 'J', F: 'F' } as const;
+const AlertModeEnum = (AlertMode as any) ?? { HIGH_QUALITY: 'HIGH_QUALITY', DIGEST: 'DIGEST' } as const;
+
 class LocationInputDto {
-  @IsEnum(LocationKind)
-  kind!: LocationKind;
+  @IsEnum(LocationKind as Record<string, string>)
+  kind!: keyof typeof LocationKind;
 
   @IsOptional()
   @IsString()
@@ -51,7 +55,7 @@ class BudgetInputDto {
 
 export class UpdateProfileDto {
   @IsOptional()
-  @IsEnum(Cabin)
+  @IsEnum(CabinEnum as Record<string, string>)
   preferredCabin?: Cabin | null;
 
   @IsOptional()
@@ -114,7 +118,7 @@ export class UpdateProfileDto {
   budget?: BudgetInputDto;
 
   @IsOptional()
-  @IsEnum(AlertMode)
+  @IsEnum(AlertModeEnum as Record<string, string>)
   alertMode?: AlertMode | null;
 
   @IsOptional()

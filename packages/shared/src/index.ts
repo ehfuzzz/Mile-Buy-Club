@@ -6,3 +6,4 @@ export * from './schemas/user-state';
 export * from './schemas/planner';
 export * from './maps/enumMap';
 export * from './maps/airlineMap';
+export * from './onboarding';

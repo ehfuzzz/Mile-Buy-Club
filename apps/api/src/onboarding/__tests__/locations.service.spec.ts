@@ -1,7 +1,8 @@
-import { LocationKind } from '@prisma/client';
+import { LocationKind as PrismaLocationKind } from '@prisma/client';
 import { LocationsService } from '../locations.service';
 
 describe('LocationsService', () => {
+  const LocationKind = (PrismaLocationKind as any) ?? { AIRPORT: 'AIRPORT', CITY: 'CITY', REGION: 'REGION' } as const;
   const findFirst = jest.fn();
   const create = jest.fn();
   const prismaMock = {
